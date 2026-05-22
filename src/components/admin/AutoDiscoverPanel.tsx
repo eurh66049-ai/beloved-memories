@@ -19,7 +19,6 @@ interface Config {
   last_run_at: string | null;
   last_status: string | null;
   last_error: string | null;
-  search_queries: string[] | null;
   current_query_index: number | null;
 }
 
