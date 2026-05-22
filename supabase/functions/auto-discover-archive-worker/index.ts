@@ -426,6 +426,141 @@ serve(async (req) => {
       return known;
     }
 
+    // ★★★ وضع AI: إذا كانت الكلمة المفتاحية "ai" أو تبدأ بـ "ai:"
+    // نطلب من Mistral توليد أسماء كتب حقيقية، ونبحث عن كل اسم في Archive.org بدقة.
+    const aiMatch = userQ.match(/^ai\s*(?::\s*(.*))?$/i);
+    if (aiMatch) {
+      const STARTED_AI = Date.now();
+      const AI_MAX_MS = 50_000;
+      const topic = (aiMatch[1] || "").trim() || null;
+      const targetAI = Math.min(config.batch_size || 100, 100);
+
+      // 1) عيّنة عناوين موجودة لتجنب التكرار
+      const [{ data: existingApproved }, { data: existingQueue }] = await Promise.all([
+        supabase.from("approved_books").select("title").order("created_at", { ascending: false }).limit(200),
+        supabase.from("bulk_upload_queue").select("title").order("created_at", { ascending: false }).limit(200),
+      ]);
+      const existingTitlesRaw = [
+        ...(existingApproved || []).map((r: any) => String(r.title || "")),
+        ...(existingQueue || []).map((r: any) => String(r.title || "")),
+      ].filter((s) => s.length > 1);
+      const existingNorm = new Set(existingTitlesRaw.map(normalizeTitle).filter((s) => s.length >= 4));
+
+      // 2) ولّد ضعف الكمية لضمان تخطّي المكررات
+      const requested = Math.min(targetAI * 3, 200);
+      const aiTitles = await generateBookTitlesWithMistral(existingTitlesRaw, requested, topic);
+
+      const aiFresh: Array<{ title: string; book_file_url: string; identifier: string; author: string | null; cover_image_url: string | null }> = [];
+      const aiInsertedUrls = new Set<string>();
+      const aiSeenNorm = new Set<string>();
+      let aiSearched = 0, aiNoResult = 0, aiDupTitle = 0, aiDupDb = 0, aiBadPdf = 0;
+
+      // 3) ابحث في Archive عن كل عنوان
+      const CONC_AI = 4;
+      let aiIdx = 0;
+      async function aiWorker() {
+        while (aiIdx < aiTitles.length) {
+          if (aiFresh.length >= targetAI) return;
+          if (Date.now() - STARTED_AI > AI_MAX_MS) return;
+          const i = aiIdx++;
+          const wanted = aiTitles[i];
+          const wantedNorm = normalizeTitle(wanted.title);
+          if (wantedNorm.length >= 4) {
+            if (existingNorm.has(wantedNorm) || aiSeenNorm.has(wantedNorm)) { aiDupTitle++; continue; }
+          }
+          aiSearched++;
+          // ابحث في archive.org بالعنوان الدقيق
+          const safeT = wanted.title.replace(/"/g, " ").trim();
+          const q = `title:("${safeT}") AND language:Arabic AND mediatype:texts AND format:PDF`;
+          const u = new URL("https://archive.org/services/search/v1/scrape");
+          u.searchParams.set("q", q);
+          u.searchParams.set("fields", "identifier,title,creator");
+          u.searchParams.set("count", "100");
+          let items: any[] = [];
+          try {
+            const r = await fetch(u.toString(), { headers: { "User-Agent": "KotobiAutoDiscovery/1.0" }, signal: AbortSignal.timeout(15_000) });
+            if (r.ok) {
+              const d = await r.json();
+              items = Array.isArray(d?.items) ? d.items : [];
+            }
+          } catch {}
+          if (items.length === 0) { aiNoResult++; continue; }
+
+          // فلتر مكررات DB ضمن نتائج هذا العنوان
+          const ids = items.map((it) => it.identifier);
+          const known = await filterAlreadyKnown(ids);
+          const candidates = items.filter((it) => !known.has(it.identifier));
+          if (candidates.length === 0) { aiDupDb++; continue; }
+
+          // جرّب أول 3 مرشحين حتى نجد PDF صالح
+          let chosen: { title: string; url: string; author: string | null; coverUrl: string | null; id: string } | null = null;
+          for (const cand of candidates.slice(0, 3)) {
+            const fbT = (Array.isArray(cand.title) ? cand.title[0] : cand.title) || wanted.title;
+            const fbA = (Array.isArray(cand.creator) ? cand.creator[0] : cand.creator) || wanted.author;
+            const book = await resolveBook(cand.identifier, fbT, fbA || null);
+            if (book) { chosen = { ...book, id: cand.identifier }; break; }
+          }
+          if (!chosen) { aiBadPdf++; continue; }
+
+          const cnorm = normalizeTitle(chosen.title);
+          if (cnorm.length >= 4 && (existingNorm.has(cnorm) || aiSeenNorm.has(cnorm))) { aiDupTitle++; continue; }
+          if (aiInsertedUrls.has(chosen.url)) { aiDupTitle++; continue; }
+          aiInsertedUrls.add(chosen.url);
+          if (cnorm.length >= 4) aiSeenNorm.add(cnorm);
+          aiFresh.push({
+            title: chosen.title,
+            book_file_url: chosen.url,
+            identifier: chosen.id,
+            author: chosen.author,
+            cover_image_url: chosen.coverUrl,
+          });
+        }
+      }
+      await Promise.all(Array.from({ length: CONC_AI }, () => aiWorker()));
+
+      // 4) أدخل دفعة في الطابور
+      if (aiFresh.length > 0) {
+        const batchLabel = `auto-ai-${new Date().toISOString().slice(0, 19)}`;
+        const rows = aiFresh.map((b) => ({
+          title: b.title,
+          book_file_url: b.book_file_url,
+          cover_image_url: b.cover_image_url,
+          source_author: b.author,
+          status: "pending",
+          attempts: 0,
+          max_attempts: 3,
+          created_by_email: "auto-discover-ai@kotobi.local",
+          batch_label: batchLabel,
+        }));
+        const { error: insErr } = await supabase.from("bulk_upload_queue").insert(rows);
+        if (insErr) console.warn("[auto-discover ai] insert error:", insErr.message);
+      }
+
+      const nextIndex = totalQueries > 1 ? (queryIndex + 1) % totalQueries : queryIndex;
+      await supabase.from("auto_discover_config").update({
+        cursor: null,
+        current_query_index: nextIndex,
+        total_discovered: (config.total_discovered || 0) + aiFresh.length,
+        last_run_at: new Date().toISOString(),
+        last_status: `[AI${topic ? `:${topic}` : ""}] ولّد ${aiTitles.length} عنوان، بحث ${aiSearched}, أضيف ${aiFresh.length} (مكرر اسم ${aiDupTitle}، مكرر DB ${aiDupDb}، بدون نتائج ${aiNoResult}، بدون PDF ${aiBadPdf})`,
+        last_error: null,
+      }).eq("id", 1);
+
+      return new Response(JSON.stringify({
+        success: true,
+        mode: "ai",
+        topic,
+        generated: aiTitles.length,
+        searched: aiSearched,
+        inserted: aiFresh.length,
+        dup_title: aiDupTitle,
+        dup_db: aiDupDb,
+        no_result: aiNoResult,
+        bad_pdf: aiBadPdf,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+
     // 4) حلقة بحث متعددة الصفحات
     // لتنويع النتائج عبر مئات الآلاف من كتب archive.org، نختار ترتيب مختلف عشوائياً
     // كل تشغيل، ونعيد cursor دورياً (احتمال 35%) لاستكشاف شرائح جديدة.
