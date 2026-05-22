@@ -142,30 +142,15 @@ function AppContent() {
 function App() {
   useEffect(() => {
     startPeriodicCleanup();
-    
+
+    // تسجيل Service Worker بدون إعادة تحميل تلقائية للصفحة.
+    // إعادة التحميل التلقائية عند controllerchange كانت تسبب تحديث الصفحة
+    // عدة مرات أثناء التصفح والكتابة في المحادثات. التحديث الجديد لـ SW
+    // سيُطبَّق بهدوء عند أول تنقل طبيعي للمستخدم.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', async () => {
-        let refreshing = false;
         try {
-          const registration = await navigator.serviceWorker.register('/sw.js');
-          registration.update();
-          if (registration.waiting) {
-            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-          }
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            if (!newWorker) return;
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                newWorker.postMessage({ type: 'SKIP_WAITING' });
-              }
-            });
-          });
-          navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (refreshing) return;
-            refreshing = true;
-            window.location.reload();
-          });
+          await navigator.serviceWorker.register('/sw.js');
         } catch (e) {
           console.log('SW registration failed:', e);
         }
