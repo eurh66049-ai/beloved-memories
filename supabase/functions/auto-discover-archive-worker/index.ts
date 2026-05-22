@@ -391,7 +391,17 @@ serve(async (req) => {
     }
 
     function titleTokens(t: string): Set<string> {
-      return new Set(normalizeTitle(t).split(/(?=[\u0600-\u06FFa-z0-9])/u).join("").match(/[\u0600-\u06FF]{3,}|[a-z0-9]{3,}/g) || []);
+      const tokenized = t
+        .toString()
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+        .replace(/[إأآا]/g, 'ا')
+        .replace(/[ىي]/g, 'ي')
+        .replace(/ة/g, 'ه')
+        .replace(/[^\u0600-\u06FFa-z0-9]+/g, ' ')
+        .trim();
+      return new Set(tokenized.split(/\s+/).filter((token) => token.length >= 3));
     }
 
     function titleMatchesWanted(actual: string, wanted: string): boolean {
