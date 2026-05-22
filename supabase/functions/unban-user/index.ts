@@ -14,6 +14,19 @@ serve(async (req) => {
   }
 
   try {
+    // 🔒 Only admins can unban
+    const auth = await verifyAuth(req);
+    if (!auth.ok) {
+      return new Response(JSON.stringify({ error: auth.error }), {
+        status: auth.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    if (!auth.isAdmin) {
+      return new Response(JSON.stringify({ error: 'Forbidden: admin only' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     console.log('🚨 طلب إلغاء حظر مستخدم');
 
     const { bannedUserId } = await req.json();
