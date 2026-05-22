@@ -16,6 +16,85 @@ const corsHeaders = {
 
 const DEFAULT_ARABIC_ARCHIVE_QUERY = "collection:booksbylanguage_arabic AND mediatype:texts AND format:PDF";
 
+const FALLBACK_CLASSIC_ARABIC_BOOKS: Array<{ title: string; author: string | null }> = [
+  { title: "مقدمة ابن خلدون", author: "ابن خلدون" },
+  { title: "الأيام", author: "طه حسين" },
+  { title: "حديث الأربعاء", author: "طه حسين" },
+  { title: "على هامش السيرة", author: "طه حسين" },
+  { title: "حي بن يقظان", author: "ابن طفيل" },
+  { title: "كليلة ودمنة", author: "ابن المقفع" },
+  { title: "البخلاء", author: "الجاحظ" },
+  { title: "البيان والتبيين", author: "الجاحظ" },
+  { title: "الحيوان", author: "الجاحظ" },
+  { title: "العقد الفريد", author: "ابن عبد ربه" },
+  { title: "الأغاني", author: "أبو الفرج الأصفهاني" },
+  { title: "نهج البلاغة", author: null },
+  { title: "وفيات الأعيان", author: "ابن خلكان" },
+  { title: "سير أعلام النبلاء", author: "الذهبي" },
+  { title: "البداية والنهاية", author: "ابن كثير" },
+  { title: "تاريخ الطبري", author: "الطبري" },
+  { title: "الكامل في التاريخ", author: "ابن الأثير" },
+  { title: "مروج الذهب", author: "المسعودي" },
+  { title: "تفسير الطبري", author: "الطبري" },
+  { title: "تفسير ابن كثير", author: "ابن كثير" },
+  { title: "الجامع لأحكام القرآن", author: "القرطبي" },
+  { title: "إحياء علوم الدين", author: "أبو حامد الغزالي" },
+  { title: "تهافت الفلاسفة", author: "أبو حامد الغزالي" },
+  { title: "المنقذ من الضلال", author: "أبو حامد الغزالي" },
+  { title: "رسالة الغفران", author: "أبو العلاء المعري" },
+  { title: "لزوم ما لا يلزم", author: "أبو العلاء المعري" },
+  { title: "ديوان المتنبي", author: "المتنبي" },
+  { title: "ديوان أبي تمام", author: "أبو تمام" },
+  { title: "ديوان البحتري", author: "البحتري" },
+  { title: "دلائل الإعجاز", author: "عبد القاهر الجرجاني" },
+  { title: "أسرار البلاغة", author: "عبد القاهر الجرجاني" },
+  { title: "الكتاب", author: "سيبويه" },
+  { title: "لسان العرب", author: "ابن منظور" },
+  { title: "أساس البلاغة", author: "الزمخشري" },
+  { title: "المستطرف في كل فن مستظرف", author: "الأبشيهي" },
+  { title: "صبح الأعشى", author: "القلقشندي" },
+  { title: "رحلة ابن بطوطة", author: "ابن بطوطة" },
+  { title: "رحلة ابن جبير", author: "ابن جبير" },
+  { title: "طوق الحمامة", author: "ابن حزم" },
+  { title: "الفصل في الملل والأهواء والنحل", author: "ابن حزم" },
+  { title: "الأحكام السلطانية", author: "الماوردي" },
+  { title: "عيون الأخبار", author: "ابن قتيبة" },
+  { title: "أدب الكاتب", author: "ابن قتيبة" },
+  { title: "الشعر والشعراء", author: "ابن قتيبة" },
+  { title: "المعلقات السبع", author: null },
+  { title: "ألف ليلة وليلة", author: null },
+  { title: "تاريخ آداب العرب", author: "مصطفى صادق الرافعي" },
+  { title: "وحي القلم", author: "مصطفى صادق الرافعي" },
+  { title: "تحت راية القرآن", author: "مصطفى صادق الرافعي" },
+  { title: "النظرات", author: "مصطفى لطفي المنفلوطي" },
+  { title: "العبرات", author: "مصطفى لطفي المنفلوطي" },
+  { title: "في سبيل التاج", author: "مصطفى لطفي المنفلوطي" },
+  { title: "النبي", author: "جبران خليل جبران" },
+  { title: "الأجنحة المتكسرة", author: "جبران خليل جبران" },
+  { title: "دمعة وابتسامة", author: "جبران خليل جبران" },
+  { title: "رمل وزبد", author: "جبران خليل جبران" },
+  { title: "عبقرية محمد", author: "عباس محمود العقاد" },
+  { title: "عبقرية عمر", author: "عباس محمود العقاد" },
+  { title: "عبقرية الصديق", author: "عباس محمود العقاد" },
+  { title: "سارة", author: "عباس محمود العقاد" },
+  { title: "حياة محمد", author: "محمد حسين هيكل" },
+  { title: "زينب", author: "محمد حسين هيكل" },
+  { title: "عودة الروح", author: "توفيق الحكيم" },
+  { title: "يوميات نائب في الأرياف", author: "توفيق الحكيم" },
+  { title: "أهل الكهف", author: "توفيق الحكيم" },
+  { title: "شهرزاد", author: "توفيق الحكيم" },
+  { title: "قنديل أم هاشم", author: "يحيى حقي" },
+  { title: "دعاء الكروان", author: "طه حسين" },
+  { title: "زقاق المدق", author: "نجيب محفوظ" },
+  { title: "خان الخليلي", author: "نجيب محفوظ" },
+  { title: "بداية ونهاية", author: "نجيب محفوظ" },
+  { title: "الثلاثية", author: "نجيب محفوظ" },
+  { title: "اللص والكلاب", author: "نجيب محفوظ" },
+  { title: "أولاد حارتنا", author: "نجيب محفوظ" },
+  { title: "موسم الهجرة إلى الشمال", author: "الطيب صالح" },
+  { title: "عرس الزين", author: "الطيب صالح" },
+];
+
 function encodeArchivePath(name: string): string {
   return name.split("/").map((part) => encodeURIComponent(part)).join("/");
 }
@@ -213,10 +292,11 @@ serve(async (req) => {
     }
 
     const scrapeCount = 100; // archive.org scrape يتطلب count >= 100
-    const batchSize = Math.min(config.batch_size || 100, 200);
+    const batchSize = Math.min(Math.max(config.batch_size || 100, 25), 150);
+    const queueRoom = Math.max(0, HARD_CAP - pending);
     // الهدف: عدد الكتب الجديدة التي نريد إضافتها هذا التشغيل
-    // نضيف دفعة صغيرة آمنة كل تشغيل حتى لا تتجاوز الدالة حد CPU، ثم يكررها cron/التشغيل اليدوي.
-    const targetFresh = Math.max(threshold - pending, Math.min(batchSize, 10));
+    // نضيف دفعات كبيرة كل تشغيل، وcron سيعيد التشغيل حتى عندما يكون المستخدم خارج التطبيق.
+    const targetFresh = Math.max(1, Math.min(batchSize, 100, queueRoom));
 
     // كشف العناوين العشوائية / أسماء الملفات / السلاسل غير المفهومة
     function isRealTitle(t: string | null | undefined, identifier: string): boolean {
@@ -297,13 +377,44 @@ serve(async (req) => {
     // الشرط: يجب أن يحتوي العنوان على حروف عربية حقيقية (مجموعة الكتب عربية).
     function looksLikeRealArabicTitle(t: string): boolean {
       const s = (t || "").toString().trim();
-      if (s.length < 2) return false;
+      if (s.length < 3 || s.length > 220) return false;
       const arabicLetters = (s.match(/[\u0600-\u06FF]/g) || []).length;
       // يجب أن يحتوي على حرفين عربيين على الأقل
-      if (arabicLetters < 2) return false;
+      if (arabicLetters < 3) return false;
+      if (arabicLetters / Math.max(s.length, 1) < 0.35) return false;
+      if (/[_.]{2,}|\d{4,}|^[\d\W_]+$/.test(s)) return false;
+      if (/\.(pdf|epub|djvu|txt|zip|rar|jpg|png)$/i.test(s)) return false;
+      if (/^(scan|file|book|document|unknown|untitled|pdf|img|page|archive)[\s_\-\d]*$/i.test(s)) return false;
       // رفض تكرار الحرف نفسه 5 مرات (مثل ااااااا)
       if (/(.)\1{4,}/.test(s)) return false;
       return true;
+    }
+
+    function titleTokens(t: string): Set<string> {
+      const tokenized = t
+        .toString()
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+        .replace(/[إأآا]/g, 'ا')
+        .replace(/[ىي]/g, 'ي')
+        .replace(/ة/g, 'ه')
+        .replace(/[^\u0600-\u06FFa-z0-9]+/g, ' ')
+        .trim();
+      return new Set(tokenized.split(/\s+/).filter((token) => token.length >= 3));
+    }
+
+    function titleMatchesWanted(actual: string, wanted: string): boolean {
+      const a = normalizeTitle(actual);
+      const w = normalizeTitle(wanted);
+      if (!a || !w) return false;
+      if (a.includes(w) || w.includes(a)) return true;
+      const wantedTokens = titleTokens(wanted);
+      const actualTokens = titleTokens(actual);
+      if (wantedTokens.size === 0 || actualTokens.size === 0) return false;
+      let hits = 0;
+      for (const token of wantedTokens) if (actualTokens.has(token)) hits++;
+      return hits >= Math.max(1, Math.ceil(wantedTokens.size * 0.6));
     }
 
     async function resolveBook(identifier: string, fallbackTitle: string, fallbackAuthor: string | null): Promise<{ title: string; url: string; author: string | null; coverUrl: string | null } | null> {
@@ -447,27 +558,36 @@ serve(async (req) => {
     const aiAuto = !aiMatch && !!mistralKey; // ← يعمل تلقائياً حتى بدون كلمة ai
     if (aiMatch || aiAuto) {
       const STARTED_AI = Date.now();
-      const AI_MAX_MS = 50_000;
+      const AI_MAX_MS = 115_000;
       // الموضوع: من المستخدم، أو تدوير تلقائي حسب current_query_index، أو عشوائي.
       const autoTopic = AUTO_TOPICS[((config.current_query_index ?? 0) + Math.floor(Math.random() * 3)) % AUTO_TOPICS.length];
       const topic = aiMatch ? ((aiMatch[1] || "").trim() || null) : autoTopic;
-      const targetAI = Math.min(config.batch_size || 100, 100);
+      const targetAI = Math.max(1, Math.min(config.batch_size || 100, 100, queueRoom));
 
 
       // 1) عيّنة عناوين موجودة لتجنب التكرار
-      const [{ data: existingApproved }, { data: existingQueue }] = await Promise.all([
-        supabase.from("approved_books").select("title").order("created_at", { ascending: false }).limit(200),
-        supabase.from("bulk_upload_queue").select("title").order("created_at", { ascending: false }).limit(200),
+      const [{ data: existingApproved }, { data: existingSubmissions }, { data: existingQueue }] = await Promise.all([
+        supabase.from("approved_books").select("title").order("created_at", { ascending: false }).limit(1000),
+        supabase.from("book_submissions").select("title").order("created_at", { ascending: false }).limit(1000),
+        supabase.from("bulk_upload_queue").select("title").order("created_at", { ascending: false }).limit(1000),
       ]);
       const existingTitlesRaw = [
         ...(existingApproved || []).map((r: any) => String(r.title || "")),
+        ...(existingSubmissions || []).map((r: any) => String(r.title || "")),
         ...(existingQueue || []).map((r: any) => String(r.title || "")),
       ].filter((s) => s.length > 1);
       const existingNorm = new Set(existingTitlesRaw.map(normalizeTitle).filter((s) => s.length >= 4));
 
       // 2) ولّد ضعف الكمية لضمان تخطّي المكررات
-      const requested = Math.min(targetAI * 3, 200);
-      const aiTitles = await generateBookTitlesWithMistral(existingTitlesRaw, requested, topic);
+      const requested = Math.min(targetAI * 4, 240);
+      const generatedTitles = await generateBookTitlesWithMistral(existingTitlesRaw, requested, topic);
+      const fallbackTitles = FALLBACK_CLASSIC_ARABIC_BOOKS
+        .slice()
+        .sort(() => Math.random() - 0.5)
+        .filter((b) => !existingNorm.has(normalizeTitle(b.title)));
+      const aiTitles = [...generatedTitles, ...fallbackTitles]
+        .filter((b, idx, arr) => arr.findIndex((x) => normalizeTitle(x.title) === normalizeTitle(b.title)) === idx)
+        .slice(0, Math.max(requested, targetAI * 3));
 
       const aiFresh: Array<{ title: string; book_file_url: string; identifier: string; author: string | null; cover_image_url: string | null }> = [];
       const aiInsertedUrls = new Set<string>();
@@ -488,21 +608,32 @@ serve(async (req) => {
             if (existingNorm.has(wantedNorm) || aiSeenNorm.has(wantedNorm)) { aiDupTitle++; continue; }
           }
           aiSearched++;
-          // ابحث في archive.org بالعنوان الدقيق
-          const safeT = wanted.title.replace(/"/g, " ").trim();
-          const q = `title:("${safeT}") AND language:Arabic AND mediatype:texts AND format:PDF`;
+          // ابحث في archive.org باسم الكتاب نفسه، مع محاولة ثانية أوسع إذا لم تظهر نتائج.
+          const safeT = wanted.title.replace(/["()]/g, " ").trim();
+          const safeAuthor = (wanted.author || "").replace(/["()]/g, " ").trim();
+          const searchQueries = [
+            `title:("${safeT}") AND language:Arabic AND mediatype:texts AND format:PDF`,
+            safeAuthor
+              ? `(title:("${safeT}") OR (${safeT} AND creator:("${safeAuthor}"))) AND language:Arabic AND mediatype:texts AND format:PDF`
+              : `(${safeT}) AND language:Arabic AND mediatype:texts AND format:PDF`,
+          ];
           const u = new URL("https://archive.org/services/search/v1/scrape");
-          u.searchParams.set("q", q);
           u.searchParams.set("fields", "identifier,title,creator");
           u.searchParams.set("count", "100");
           let items: any[] = [];
-          try {
-            const r = await fetch(u.toString(), { headers: { "User-Agent": "KotobiAutoDiscovery/1.0" }, signal: AbortSignal.timeout(15_000) });
-            if (r.ok) {
-              const d = await r.json();
-              items = Array.isArray(d?.items) ? d.items : [];
+          for (const q of searchQueries) {
+            try {
+              u.searchParams.set("q", q);
+              const r = await fetch(u.toString(), { headers: { "User-Agent": "KotobiAutoDiscovery/1.0" }, signal: AbortSignal.timeout(15_000) });
+              if (r.ok) {
+                const d = await r.json();
+                items = Array.isArray(d?.items) ? d.items : [];
+                if (items.length > 0) break;
+              }
+            } catch {
+              // جرّب الاستعلام التالي
             }
-          } catch {}
+          }
           if (items.length === 0) { aiNoResult++; continue; }
 
           // فلتر مكررات DB ضمن نتائج هذا العنوان
@@ -513,11 +644,11 @@ serve(async (req) => {
 
           // جرّب أول 3 مرشحين حتى نجد PDF صالح
           let chosen: { title: string; url: string; author: string | null; coverUrl: string | null; id: string } | null = null;
-          for (const cand of candidates.slice(0, 3)) {
+          for (const cand of candidates.slice(0, 8)) {
             const fbT = (Array.isArray(cand.title) ? cand.title[0] : cand.title) || wanted.title;
             const fbA = (Array.isArray(cand.creator) ? cand.creator[0] : cand.creator) || wanted.author;
             const book = await resolveBook(cand.identifier, fbT, fbA || null);
-            if (book) { chosen = { ...book, id: cand.identifier }; break; }
+            if (book && titleMatchesWanted(book.title, wanted.title)) { chosen = { ...book, id: cand.identifier }; break; }
           }
           if (!chosen) { aiBadPdf++; continue; }
 
