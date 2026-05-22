@@ -642,14 +642,18 @@ serve(async (req) => {
           const candidates = items.filter((it) => !known.has(it.identifier));
           if (candidates.length === 0) { aiDupDb++; continue; }
 
-          // جرّب أول 3 مرشحين حتى نجد PDF صالح
+          // جرّب عدة مرشحين: نفضّل المطابقة القوية للعنوان وإلا نقبل أول PDF صالح.
           let chosen: { title: string; url: string; author: string | null; coverUrl: string | null; id: string } | null = null;
+          let firstValid: { title: string; url: string; author: string | null; coverUrl: string | null; id: string } | null = null;
           for (const cand of candidates.slice(0, 8)) {
             const fbT = (Array.isArray(cand.title) ? cand.title[0] : cand.title) || wanted.title;
             const fbA = (Array.isArray(cand.creator) ? cand.creator[0] : cand.creator) || wanted.author;
             const book = await resolveBook(cand.identifier, fbT, fbA || null);
-            if (book && titleMatchesWanted(book.title, wanted.title)) { chosen = { ...book, id: cand.identifier }; break; }
+            if (!book) continue;
+            if (!firstValid) firstValid = { ...book, id: cand.identifier };
+            if (titleMatchesWanted(book.title, wanted.title)) { chosen = { ...book, id: cand.identifier }; break; }
           }
+          if (!chosen && firstValid) chosen = firstValid;
           if (!chosen) { aiBadPdf++; continue; }
 
           const cnorm = normalizeTitle(chosen.title);
