@@ -1,9 +1,22 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { escapeHtml } from '../_shared/auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
+
+// Strict URL allow-list: only http(s) URLs without quotes/whitespace
+const safeUrl = (u: unknown): string => {
+  if (typeof u !== 'string') return ''
+  const s = u.trim()
+  if (!/^https?:\/\/[^\s"'<>]+$/i.test(s)) return ''
+  return s
+}
+// Escape for embedding inside a <script>...</script> block
+const jsonEncode = (v: unknown): string =>
+  JSON.stringify(v ?? '').replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')
+
 
 interface Database {
   public: {
@@ -132,10 +145,45 @@ Deno.serve(async (req) => {
 
     const authorUrl = `${url.origin}/author/${encodeURIComponent(author.slug || authorName)}`
     
-    // Use author's actual avatar if available, otherwise use default
-    const imageUrl = authorAvatar && authorAvatar.trim() 
+    const rawImageUrl = authorAvatar && authorAvatar.trim()
       ? (authorAvatar.startsWith('http') ? authorAvatar : `${url.origin}${authorAvatar}`)
       : `${url.origin}/lovable-uploads/b1cd70fc-5c3b-47ac-ba45-cc3236f7c840.png`
+    const imageUrl = safeUrl(rawImageUrl) || `${url.origin}/lovable-uploads/b1cd70fc-5c3b-47ac-ba45-cc3236f7c840.png`
+
+    // 🔒 Escape every interpolated DB value
+    const e = {
+      name: escapeHtml(authorName),
+      firstName: escapeHtml(String(authorName).split(' ')[0] ?? ''),
+      lastName: escapeHtml(String(authorName).split(' ').slice(1).join(' ')),
+      description: escapeHtml(description),
+      authorUrl: escapeHtml(authorUrl),
+      imageUrl: escapeHtml(imageUrl),
+      country: escapeHtml(author.country_name ?? ''),
+      books: escapeHtml(String(author.books_count ?? 0)),
+      followers: escapeHtml(String(author.followers_count ?? 0)),
+    }
+
+    // Build sameAs from validated URLs only
+    const sameAsUrls: string[] = []
+    const w = safeUrl(author.website); if (w) sameAsUrls.push(w)
+    const fb = author.social_links?.facebook; if (typeof fb === 'string' && /^[A-Za-z0-9_.-]+$/.test(fb)) sameAsUrls.push(`https://facebook.com/${fb}`)
+    const tw = author.social_links?.twitter; if (typeof tw === 'string' && /^[A-Za-z0-9_.-]+$/.test(tw)) sameAsUrls.push(`https://twitter.com/${tw}`)
+    const ig = author.social_links?.instagram; if (typeof ig === 'string' && /^[A-Za-z0-9_.-]+$/.test(ig)) sameAsUrls.push(`https://instagram.com/${ig}`)
+
+    const ldJson = {
+      '@context': 'https://schema.org',
+      '@type': 'Person',
+      name: authorName,
+      description,
+      url: authorUrl,
+      image: imageUrl,
+      sameAs: sameAsUrls,
+      jobTitle: 'مؤلف',
+      worksFor: { '@type': 'Organization', name: 'منصة كتبي' },
+      nationality: author.country_name || 'غير محدد',
+      award: `${author.books_count} كتاب منشور`,
+      follows: `${author.followers_count} متابع`,
+    }
 
     // Generate HTML with Open Graph meta tags
     const html = `<!DOCTYPE html>
@@ -143,140 +191,67 @@ Deno.serve(async (req) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+
   <!-- Basic Meta Tags -->
-  <title>${authorName} | منصة كتبي</title>
-  <meta name="description" content="${description}">
-  <meta name="author" content="${authorName}">
-  <meta name="keywords" content="${authorName}, مؤلف, كتب عربية, منصة كتبي${author.country_name ? ', ' + author.country_name : ''}">
-  
+  <title>${e.name} | منصة كتبي</title>
+  <meta name="description" content="${e.description}">
+  <meta name="author" content="${e.name}">
+  <meta name="keywords" content="${e.name}, مؤلف, كتب عربية, منصة كتبي${author.country_name ? ', ' + e.country : ''}">
+
   <!-- Open Graph Meta Tags for Social Media -->
-  <meta property="og:title" content="${authorName} - مؤلف">
-  <meta property="og:description" content="${description}">
-  <meta property="og:image" content="${imageUrl}">
+  <meta property="og:title" content="${e.name} - مؤلف">
+  <meta property="og:description" content="${e.description}">
+  <meta property="og:image" content="${e.imageUrl}">
   <meta property="og:image:width" content="400">
   <meta property="og:image:height" content="400">
-  <meta property="og:image:alt" content="صورة المؤلف ${authorName}">
-  <meta property="og:url" content="${authorUrl}">
+  <meta property="og:image:alt" content="صورة المؤلف ${e.name}">
+  <meta property="og:url" content="${e.authorUrl}">
   <meta property="og:type" content="profile">
   <meta property="og:site_name" content="منصة كتبي - المكتبة الرقمية العربية المجانية">
   <meta property="og:locale" content="ar_AR">
-  
+
   <!-- Profile specific Open Graph -->
-  <meta property="profile:first_name" content="${authorName.split(' ')[0]}">
-  <meta property="profile:last_name" content="${authorName.split(' ').slice(1).join(' ')}">
-  <meta property="profile:username" content="${authorName}">
-  
+  <meta property="profile:first_name" content="${e.firstName}">
+  <meta property="profile:last_name" content="${e.lastName}">
+  <meta property="profile:username" content="${e.name}">
+
   <!-- Twitter Card Meta Tags -->
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="${authorName} - مؤلف">
-  <meta name="twitter:description" content="${description}">
-  <meta name="twitter:image" content="${imageUrl}">
-  
+  <meta name="twitter:title" content="${e.name} - مؤلف">
+  <meta name="twitter:description" content="${e.description}">
+  <meta name="twitter:image" content="${e.imageUrl}">
+
   <!-- Author specific Schema.org structured data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "name": "${authorName}",
-    "description": "${description}",
-    "url": "${authorUrl}",
-    "image": "${imageUrl}",
-    "sameAs": [
-      ${author.website ? `"${author.website}"` : ''}
-      ${author.social_links?.facebook ? `, "https://facebook.com/${author.social_links.facebook}"` : ''}
-      ${author.social_links?.twitter ? `, "https://twitter.com/${author.social_links.twitter}"` : ''}
-      ${author.social_links?.instagram ? `, "https://instagram.com/${author.social_links.instagram}"` : ''}
-    ].filter(Boolean),
-    "jobTitle": "مؤلف",
-    "worksFor": {
-      "@type": "Organization",
-      "name": "منصة كتبي"
-    },
-    "nationality": "${author.country_name || 'غير محدد'}",
-    "award": "${author.books_count} كتاب منشور",
-    "follows": "${author.followers_count} متابع"
-  }
-  </script>
-  
+  <script type="application/ld+json">${JSON.stringify(ldJson).replace(/</g, '\\u003c')}</script>
+
   <!-- Redirect to main app -->
   <script>
-    // Redirect to the actual app after a short delay to allow crawlers to read meta tags
     setTimeout(function() {
-      window.location.href = '${authorUrl}';
+      window.location.href = ${jsonEncode(authorUrl)};
     }, 500);
   </script>
-  
+
   <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      text-align: center;
-      padding: 50px 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0;
-    }
-    .container {
-      max-width: 600px;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 40px;
-      border-radius: 20px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    .author-avatar {
-      width: 150px;
-      height: 150px;
-      border-radius: 50%;
-      margin: 0 auto 20px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-      object-fit: cover;
-    }
-    .author-name {
-      font-size: 32px;
-      font-weight: bold;
-      margin-bottom: 10px;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-    }
-    .author-stats {
-      font-size: 18px;
-      margin-bottom: 20px;
-      opacity: 0.9;
-    }
-    .author-bio {
-      font-size: 16px;
-      line-height: 1.6;
-      margin-bottom: 20px;
-      opacity: 0.8;
-    }
-    .loading-text {
-      font-size: 14px;
-      opacity: 0.7;
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 0.7; }
-      50% { opacity: 1; }
-    }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 50px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; }
+    .container { max-width: 600px; background: rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 20px; backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); }
+    .author-avatar { width: 150px; height: 150px; border-radius: 50%; margin: 0 auto 20px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); object-fit: cover; }
+    .author-name { font-size: 32px; font-weight: bold; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); }
+    .author-stats { font-size: 18px; margin-bottom: 20px; opacity: 0.9; }
+    .author-bio { font-size: 16px; line-height: 1.6; margin-bottom: 20px; opacity: 0.8; }
+    .loading-text { font-size: 14px; opacity: 0.7; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
   </style>
 </head>
 <body>
   <div class="container">
-    <img src="${imageUrl}" 
-         alt="صورة المؤلف ${authorName}" 
-         class="author-avatar"
+    <img src="${e.imageUrl}" alt="صورة المؤلف ${e.name}" class="author-avatar"
          onerror="this.src='/lovable-uploads/b1cd70fc-5c3b-47ac-ba45-cc3236f7c840.png';">
-    <h1 class="author-name">${authorName}</h1>
+    <h1 class="author-name">${e.name}</h1>
     <div class="author-stats">
-      ${author.books_count || 0} كتاب • ${author.followers_count || 0} متابع
-      ${author.country_name ? ' • ' + author.country_name : ''}
+      ${e.books} كتاب • ${e.followers} متابع
+      ${author.country_name ? ' • ' + e.country : ''}
     </div>
-    ${authorBio ? `<p class="author-bio">${description}</p>` : ''}
+    ${authorBio ? `<p class="author-bio">${e.description}</p>` : ''}
     <p class="loading-text">جاري توجيهك إلى صفحة المؤلف...</p>
   </div>
 </body>
@@ -286,7 +261,8 @@ Deno.serve(async (req) => {
       headers: {
         ...corsHeaders,
         'Content-Type': 'text/html; charset=utf-8',
-        'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
+        'Cache-Control': 'public, max-age=300',
+        'Content-Security-Policy': "default-src 'self'; img-src https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'",
       },
     })
 

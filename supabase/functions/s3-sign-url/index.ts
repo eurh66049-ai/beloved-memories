@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
+import { verifyAuth } from "../_shared/auth.ts";
 
 const GATEWAY_BASE = "https://connector-gateway.lovable.dev";
 
@@ -15,6 +16,16 @@ serve(async (req) => {
         { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+    // 🔒 Require authenticated user. Write mode is admin-only.
+    const auth = await verifyAuth(req);
+    if (!auth.ok) {
+      return new Response(
+        JSON.stringify({ error: auth.error }),
+        { status: auth.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const AWS_S3_API_KEY = Deno.env.get("AWS_S3_API_KEY");
@@ -35,6 +46,15 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const mode = body.mode === "write" ? "write" : "read";
     const objectPath: string | undefined = body.object_path;
+
+    // 🔒 Write operations require admin privileges
+    if (mode === "write" && !auth.isAdmin) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden: write mode is admin only" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
 
     if (!objectPath || typeof objectPath !== "string" || objectPath.length === 0) {
       return new Response(

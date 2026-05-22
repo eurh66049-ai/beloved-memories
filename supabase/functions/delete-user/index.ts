@@ -1,6 +1,8 @@
 
 // Edge function to delete a user and all their associated data
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.6'
+import { verifyAuth } from '../_shared/auth.ts'
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,6 +32,15 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // 🔒 Verify caller identity
+    const auth = await verifyAuth(req)
+    if (!auth.ok) {
+      return new Response(
+        JSON.stringify({ error: auth.error }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: auth.status }
+      )
+    }
+
     const { userId } = await req.json()
 
     if (!userId) {
@@ -39,7 +50,15 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.log(`Starting deletion process for user: ${userId}`)
+    // Only the account owner or an admin may delete this account
+    if (auth.userId !== userId && !auth.isAdmin) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: cannot delete another user' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      )
+    }
+
+    console.log(`Starting deletion process for user: ${userId} (by ${auth.userId})`)
 
     // Function to handle data deletion with better error reporting
     const deleteUserData = async (tableName: string, userId: string) => {
