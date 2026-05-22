@@ -74,6 +74,68 @@ async function refineQueryWithMistral(userQuery: string): Promise<string> {
   } catch { return userQuery; }
 }
 
+// ★ توليد قائمة كبيرة من أسماء كتب عربية حقيقية عبر Mistral
+async function generateBookTitlesWithMistral(
+  existingTitlesSample: string[],
+  count: number,
+  topic: string | null,
+): Promise<Array<{ title: string; author: string | null }>> {
+  const apiKey = Deno.env.get("MISTRAL_API_KEY");
+  if (!apiKey) return [];
+  const avoidList = existingTitlesSample.slice(0, 120).join("\n- ");
+  const topicLine = topic && topic.trim()
+    ? `الموضوع/المجال المطلوب: ${topic.trim()}`
+    : "أي موضوع كلاسيكي أو تراثي أو حديث جاد.";
+  const sys = `أنت خبير في الكتب العربية. ولّد قائمة بأسماء كتب عربية حقيقية ومعروفة فعلاً.
+قواعد صارمة:
+1) كتب حقيقية نُشرت — لا تختلق عناوين.
+2) لا تكرّر أي عنوان من قائمة "الموجودة مسبقاً".
+3) لا أسماء ملفات ولا أرقام عشوائية، عناوين عربية فصيحة فقط.
+4) أرجع JSON فقط: {"books":[{"title":"...","author":"..."}]} بدون أي شرح.
+5) author اختياري — استخدم null إن لم تعرفه يقيناً.
+6) عدد العناوين المطلوب: ${count}.`;
+  const usr = `${topicLine}
+
+الكتب الموجودة مسبقاً (تجنّبها):
+- ${avoidList || "(لا شيء)"}
+
+أعطني JSON الآن.`;
+  try {
+    const r = await fetch("https://api.mistral.ai/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "mistral-large-latest",
+        messages: [
+          { role: "system", content: sys },
+          { role: "user", content: usr },
+        ],
+        temperature: 0.9,
+        max_tokens: 4000,
+        response_format: { type: "json_object" },
+      }),
+    });
+    if (!r.ok) {
+      console.warn("[auto-discover] mistral titles HTTP", r.status);
+      return [];
+    }
+    const d = await r.json();
+    const raw = (d.choices?.[0]?.message?.content || "").trim();
+    let parsed: any;
+    try { parsed = JSON.parse(raw); } catch { return []; }
+    const books = Array.isArray(parsed?.books) ? parsed.books : [];
+    return books
+      .map((b: any) => ({
+        title: String(b?.title ?? "").trim(),
+        author: b?.author && String(b.author).trim() ? String(b.author).trim() : null,
+      }))
+      .filter((b: { title: string }) => b.title.length >= 2);
+  } catch (e) {
+    console.warn("[auto-discover] mistral titles error", (e as Error).message);
+    return [];
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
