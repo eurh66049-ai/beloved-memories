@@ -151,9 +151,27 @@ serve(async (req) => {
 
     let serviceAccount: any;
     try {
-      serviceAccount = JSON.parse(serviceAccountRaw);
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid FIREBASE_SERVICE_ACCOUNT_JSON" }), {
+      const raw = serviceAccountRaw.trim().replace(/^\uFEFF/, "");
+      try {
+        serviceAccount = JSON.parse(raw);
+      } catch {
+        // Fallback: secret may contain literal newlines inside private_key.
+        // JSON.parse rejects raw \n in strings — escape them and retry.
+        const fixed = raw.replace(/"private_key"\s*:\s*"([\s\S]*?)"(?=\s*[,}])/, (_m, key) => {
+          const escaped = key.replace(/\r/g, "").replace(/\n/g, "\\n");
+          return `"private_key":"${escaped}"`;
+        });
+        serviceAccount = JSON.parse(fixed);
+      }
+      if (typeof serviceAccount.private_key === "string") {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+      }
+      if (!serviceAccount.client_email || !serviceAccount.private_key || !serviceAccount.project_id) {
+        throw new Error("missing client_email/private_key/project_id");
+      }
+    } catch (e) {
+      console.error("[FCM] Invalid service account JSON:", e);
+      return new Response(JSON.stringify({ error: "Invalid FIREBASE_SERVICE_ACCOUNT_JSON", details: String(e) }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
