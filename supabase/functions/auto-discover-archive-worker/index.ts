@@ -548,27 +548,36 @@ serve(async (req) => {
     const aiAuto = !aiMatch && !!mistralKey; // ← يعمل تلقائياً حتى بدون كلمة ai
     if (aiMatch || aiAuto) {
       const STARTED_AI = Date.now();
-      const AI_MAX_MS = 50_000;
+      const AI_MAX_MS = 115_000;
       // الموضوع: من المستخدم، أو تدوير تلقائي حسب current_query_index، أو عشوائي.
       const autoTopic = AUTO_TOPICS[((config.current_query_index ?? 0) + Math.floor(Math.random() * 3)) % AUTO_TOPICS.length];
       const topic = aiMatch ? ((aiMatch[1] || "").trim() || null) : autoTopic;
-      const targetAI = Math.min(config.batch_size || 100, 100);
+      const targetAI = Math.max(1, Math.min(config.batch_size || 100, 100, queueRoom));
 
 
       // 1) عيّنة عناوين موجودة لتجنب التكرار
-      const [{ data: existingApproved }, { data: existingQueue }] = await Promise.all([
-        supabase.from("approved_books").select("title").order("created_at", { ascending: false }).limit(200),
-        supabase.from("bulk_upload_queue").select("title").order("created_at", { ascending: false }).limit(200),
+      const [{ data: existingApproved }, { data: existingSubmissions }, { data: existingQueue }] = await Promise.all([
+        supabase.from("approved_books").select("title").order("created_at", { ascending: false }).limit(1000),
+        supabase.from("book_submissions").select("title").order("created_at", { ascending: false }).limit(1000),
+        supabase.from("bulk_upload_queue").select("title").order("created_at", { ascending: false }).limit(1000),
       ]);
       const existingTitlesRaw = [
         ...(existingApproved || []).map((r: any) => String(r.title || "")),
+        ...(existingSubmissions || []).map((r: any) => String(r.title || "")),
         ...(existingQueue || []).map((r: any) => String(r.title || "")),
       ].filter((s) => s.length > 1);
       const existingNorm = new Set(existingTitlesRaw.map(normalizeTitle).filter((s) => s.length >= 4));
 
       // 2) ولّد ضعف الكمية لضمان تخطّي المكررات
-      const requested = Math.min(targetAI * 3, 200);
-      const aiTitles = await generateBookTitlesWithMistral(existingTitlesRaw, requested, topic);
+      const requested = Math.min(targetAI * 4, 240);
+      const generatedTitles = await generateBookTitlesWithMistral(existingTitlesRaw, requested, topic);
+      const fallbackTitles = FALLBACK_CLASSIC_ARABIC_BOOKS
+        .slice()
+        .sort(() => Math.random() - 0.5)
+        .filter((b) => !existingNorm.has(normalizeTitle(b.title)));
+      const aiTitles = [...generatedTitles, ...fallbackTitles]
+        .filter((b, idx, arr) => arr.findIndex((x) => normalizeTitle(x.title) === normalizeTitle(b.title)) === idx)
+        .slice(0, Math.max(requested, targetAI * 3));
 
       const aiFresh: Array<{ title: string; book_file_url: string; identifier: string; author: string | null; cover_image_url: string | null }> = [];
       const aiInsertedUrls = new Set<string>();
