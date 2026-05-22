@@ -47,6 +47,15 @@ serve(async (req) => {
     const mode = body.mode === "write" ? "write" : "read";
     const objectPath: string | undefined = body.object_path;
 
+    // 🔒 Write operations require admin privileges
+    if (mode === "write" && !auth.isAdmin) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden: write mode is admin only" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+
     if (!objectPath || typeof objectPath !== "string" || objectPath.length === 0) {
       return new Response(
         JSON.stringify({ error: "object_path is required" }),
