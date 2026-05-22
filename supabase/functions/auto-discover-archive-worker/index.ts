@@ -598,21 +598,32 @@ serve(async (req) => {
             if (existingNorm.has(wantedNorm) || aiSeenNorm.has(wantedNorm)) { aiDupTitle++; continue; }
           }
           aiSearched++;
-          // ابحث في archive.org بالعنوان الدقيق
-          const safeT = wanted.title.replace(/"/g, " ").trim();
-          const q = `title:("${safeT}") AND language:Arabic AND mediatype:texts AND format:PDF`;
+          // ابحث في archive.org باسم الكتاب نفسه، مع محاولة ثانية أوسع إذا لم تظهر نتائج.
+          const safeT = wanted.title.replace(/["()]/g, " ").trim();
+          const safeAuthor = (wanted.author || "").replace(/["()]/g, " ").trim();
+          const searchQueries = [
+            `title:("${safeT}") AND language:Arabic AND mediatype:texts AND format:PDF`,
+            safeAuthor
+              ? `(title:("${safeT}") OR (${safeT} AND creator:("${safeAuthor}"))) AND language:Arabic AND mediatype:texts AND format:PDF`
+              : `(${safeT}) AND language:Arabic AND mediatype:texts AND format:PDF`,
+          ];
           const u = new URL("https://archive.org/services/search/v1/scrape");
-          u.searchParams.set("q", q);
           u.searchParams.set("fields", "identifier,title,creator");
           u.searchParams.set("count", "100");
           let items: any[] = [];
-          try {
-            const r = await fetch(u.toString(), { headers: { "User-Agent": "KotobiAutoDiscovery/1.0" }, signal: AbortSignal.timeout(15_000) });
-            if (r.ok) {
-              const d = await r.json();
-              items = Array.isArray(d?.items) ? d.items : [];
+          for (const q of searchQueries) {
+            try {
+              u.searchParams.set("q", q);
+              const r = await fetch(u.toString(), { headers: { "User-Agent": "KotobiAutoDiscovery/1.0" }, signal: AbortSignal.timeout(15_000) });
+              if (r.ok) {
+                const d = await r.json();
+                items = Array.isArray(d?.items) ? d.items : [];
+                if (items.length > 0) break;
+              }
+            } catch {
+              // جرّب الاستعلام التالي
             }
-          } catch {}
+          }
           if (items.length === 0) { aiNoResult++; continue; }
 
           // فلتر مكررات DB ضمن نتائج هذا العنوان
@@ -623,11 +634,11 @@ serve(async (req) => {
 
           // جرّب أول 3 مرشحين حتى نجد PDF صالح
           let chosen: { title: string; url: string; author: string | null; coverUrl: string | null; id: string } | null = null;
-          for (const cand of candidates.slice(0, 3)) {
+          for (const cand of candidates.slice(0, 8)) {
             const fbT = (Array.isArray(cand.title) ? cand.title[0] : cand.title) || wanted.title;
             const fbA = (Array.isArray(cand.creator) ? cand.creator[0] : cand.creator) || wanted.author;
             const book = await resolveBook(cand.identifier, fbT, fbA || null);
-            if (book) { chosen = { ...book, id: cand.identifier }; break; }
+            if (book && titleMatchesWanted(book.title, wanted.title)) { chosen = { ...book, id: cand.identifier }; break; }
           }
           if (!chosen) { aiBadPdf++; continue; }
 
