@@ -124,7 +124,6 @@ interface Config {
   batch_size: number;
   min_pending_threshold: number;
   total_discovered: number;
-  search_queries?: string[] | null;
   current_query_index?: number | null;
 }
 
@@ -543,8 +542,7 @@ serve(async (req) => {
 
     // ★★★ وضع AI تلقائي بالكامل:
     // - يعمل دائماً عند توفر MISTRAL_API_KEY بدون أي إعداد يدوي.
-    // - أو عند تمرير كلمة "ai" / "ai:موضوع" في search_queries.
-    // - في الوضع التلقائي يدوّر بين عشرات المواضيع العربية تلقائياً.
+    // - يدوّر داخلياً بين عشرات المواضيع العربية تلقائياً بدون قائمة كلمات يكتبها المستخدم.
     const AUTO_TOPICS = [
       "الفقه الإسلامي والأصول", "التفسير وعلوم القرآن", "الحديث وعلومه", "السيرة النبوية",
       "التاريخ الإسلامي", "التاريخ العربي الحديث", "التاريخ العالمي",
