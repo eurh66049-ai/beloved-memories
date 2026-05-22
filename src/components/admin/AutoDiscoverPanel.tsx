@@ -19,7 +19,6 @@ interface Config {
   last_run_at: string | null;
   last_status: string | null;
   last_error: string | null;
-  search_queries: string[] | null;
   current_query_index: number | null;
 }
 
@@ -30,8 +29,6 @@ const AutoDiscoverPanel: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
   const [pendingCount, setPendingCount] = useState<number>(0);
-  const [keywordsText, setKeywordsText] = useState('');
-  const defaultArabicQuery = 'collection:booksbylanguage_arabic AND mediatype:texts AND format:PDF';
 
   const load = async () => {
     setLoading(true);
@@ -42,8 +39,6 @@ const AutoDiscoverPanel: React.FC = () => {
       .maybeSingle();
     if (data) {
       setCfg(data as unknown as Config);
-      const list = Array.isArray((data as any).search_queries) ? (data as any).search_queries as string[] : [];
-      setKeywordsText(list.join('\n'));
     }
     const { count } = await supabase
       .from('bulk_upload_queue')
@@ -112,27 +107,6 @@ const AutoDiscoverPanel: React.FC = () => {
     toast({ title: 'تمت إعادة تعيين المؤشر', description: 'سيبدأ الاكتشاف من بداية النتائج في الدورة القادمة.' });
   };
 
-  const saveKeywords = async () => {
-    const list = keywordsText
-      .split('\n')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (list.length === 0) {
-      toast({ title: 'القائمة فارغة', description: 'أضف كلمة واحدة على الأقل.', variant: 'destructive' });
-      return;
-    }
-    await save({ search_queries: list, current_query_index: 0, cursor: null } as Partial<Config>);
-    toast({ title: '✅ تم حفظ قائمة الكلمات', description: `${list.length} كلمة — يبدأ من الأولى.` });
-  };
-
-  const skipToNext = async () => {
-    const list = cfg?.search_queries || [];
-    if (list.length < 2) return;
-    const next = (((cfg?.current_query_index ?? 0) + 1) % list.length);
-    await save({ current_query_index: next, cursor: null } as Partial<Config>);
-    toast({ title: '⏭️ تم الانتقال للكلمة التالية', description: list[next] });
-  };
-
   if (loading && !cfg) {
     return (
       <Card>
@@ -185,34 +159,13 @@ const AutoDiscoverPanel: React.FC = () => {
         </div>
 
         <div className="rounded-lg border p-3 bg-background space-y-2">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <Label htmlFor="auto-discover-keywords" className="text-xs">
-              قائمة كلمات البحث (كلمة واحدة في كل سطر) — يدور بينها تلقائياً
-            </Label>
-            {cfg?.search_queries && cfg.search_queries.length > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                الحالية: {cfg.search_queries[(cfg.current_query_index ?? 0) % cfg.search_queries.length]} ({(cfg.current_query_index ?? 0) + 1}/{cfg.search_queries.length})
-              </Badge>
-            )}
+          <Label className="text-sm font-bold">وضع الاكتشاف الذكي</Label>
+          <div className="text-sm text-muted-foreground leading-6">
+            لا يحتاج النظام الآن إلى قائمة كلمات. Mistral AI يولّد عناوين حقيقية تلقائياً، ثم يبحث في بوابات Archive.org الواسعة ويتجنب الروابط والعناوين المكررة قبل إضافتها للطابور.
           </div>
-          <textarea
-            id="auto-discover-keywords"
-            value={keywordsText}
-            onChange={(e) => setKeywordsText(e.target.value)}
-            placeholder={"روايات\nتاريخ\nفقه\nشعر\nفلسفة"}
-            rows={8}
-            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
-            dir="rtl"
-          />
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={saveKeywords} disabled={saving} size="sm">حفظ القائمة</Button>
-            <Button onClick={skipToNext} disabled={saving || !cfg?.search_queries || cfg.search_queries.length < 2} variant="outline" size="sm">
-              ⏭️ تخطّي للكلمة التالية
-            </Button>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            عند انتهاء كتب كلمة ينتقل تلقائياً للكلمة التالية. يدعم الكلمات العربية البسيطة أو استعلامات Archive.org Lucene.
-          </div>
+          <Badge variant="secondary" className="text-xs">
+            الجولة الحالية: {((cfg?.current_query_index ?? 0) % 30) + 1}/30 موضوع تلقائي
+          </Badge>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center">

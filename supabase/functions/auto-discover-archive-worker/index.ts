@@ -124,7 +124,6 @@ interface Config {
   batch_size: number;
   min_pending_threshold: number;
   total_discovered: number;
-  search_queries?: string[] | null;
   current_query_index?: number | null;
 }
 
@@ -268,11 +267,16 @@ serve(async (req) => {
       });
     }
 
-    // 3) تحضير الاستعلام الحالي من قائمة الكلمات (cycling).
-    // إن لم تكن هنالك قائمة، نعود لاستعلام واحد قديم.
-    const queriesList: string[] = Array.isArray(config.search_queries) && config.search_queries.length > 0
-      ? (config.search_queries as string[]).map((s) => String(s || "").trim()).filter(Boolean)
-      : [(config.search_query || DEFAULT_ARABIC_ARCHIVE_QUERY).toString()];
+    // 3) تحضير استعلام تلقائي قوي بالكامل.
+    // لم نعد نعتمد على قائمة كلمات يكتبها المستخدم؛ النظام يدوّر داخلياً بين بوابات واسعة وموثوقة.
+    const AUTO_DISCOVERY_QUERIES = [
+      `collection:booksbylanguage_arabic AND mediatype:texts AND format:PDF`,
+      `language:Arabic AND mediatype:texts AND format:PDF`,
+      `(collection:opensource_arabic OR collection:ArabicBooks OR collection:booksbylanguage_arabic) AND mediatype:texts AND format:PDF`,
+      `(subject:Arabic OR subject:العربية OR subject:اسلام OR subject:تاريخ OR subject:ادب) AND mediatype:texts AND format:PDF`,
+      `(creator:* OR title:*) AND language:Arabic AND mediatype:texts AND format:PDF`,
+    ];
+    const queriesList: string[] = AUTO_DISCOVERY_QUERIES;
     const totalQueries = queriesList.length;
     let queryIndex = ((config.current_query_index ?? 0) % totalQueries + totalQueries) % totalQueries;
     const userQ = (queriesList[queryIndex] || "").toString().trim();
@@ -292,11 +296,11 @@ serve(async (req) => {
     }
 
     const scrapeCount = 100; // archive.org scrape يتطلب count >= 100
-    const batchSize = Math.min(Math.max(config.batch_size || 100, 25), 150);
+    const batchSize = Math.min(Math.max(config.batch_size || 8, 5), 8);
     const queueRoom = Math.max(0, HARD_CAP - pending);
     // الهدف: عدد الكتب الجديدة التي نريد إضافتها هذا التشغيل
     // نضيف دفعات كبيرة كل تشغيل، وcron سيعيد التشغيل حتى عندما يكون المستخدم خارج التطبيق.
-    const targetFresh = Math.max(1, Math.min(batchSize, 100, queueRoom));
+    const targetFresh = Math.max(1, Math.min(batchSize, 8, queueRoom));
 
     // كشف العناوين العشوائية / أسماء الملفات / السلاسل غير المفهومة
     function isRealTitle(t: string | null | undefined, identifier: string): boolean {
@@ -445,13 +449,12 @@ serve(async (req) => {
           .filter((f) => !/_bw\.pdf$|_text\.pdf$/i.test(f.name))
           .sort((a, b) => b.size - a.size);
         const pdfCandidates = [...preferred, ...pdfs.filter((f) => !preferred.some((p) => p.name === f.name))]
-          .slice(0, 4);
-        const MAX_BYTES = 45 * 1024 * 1024;
-        const chosen = (await Promise.all(pdfCandidates.map(async (candidate) => {
-          if (candidate.size && candidate.size > MAX_BYTES) return null;
-          const url = `https://archive.org/download/${encodeURIComponent(identifier)}/${encodeArchivePath(candidate.name)}`;
-          return await isDownloadableArchivePdf(url) ? { ...candidate, url } : null;
-        }))).find(Boolean);
+          .slice(0, 6);
+        const MAX_BYTES = 180 * 1024 * 1024;
+        const chosenFile = pdfCandidates.find((candidate) => !candidate.size || candidate.size <= MAX_BYTES);
+        const chosen = chosenFile
+          ? { ...chosenFile, url: `https://archive.org/download/${encodeURIComponent(identifier)}/${encodeArchivePath(chosenFile.name)}` }
+          : null;
         if (!chosen) return null;
 
         const images = files.filter((f) => typeof f.name === "string" && /\.(jpe?g|png)$/i.test(f.name) && !/_thumb|_small/i.test(f.name));
@@ -537,10 +540,9 @@ serve(async (req) => {
       return known;
     }
 
-    // ★★★ وضع AI تلقائي بالكامل:
-    // - يعمل دائماً عند توفر MISTRAL_API_KEY بدون أي إعداد يدوي.
-    // - أو عند تمرير كلمة "ai" / "ai:موضوع" في search_queries.
-    // - في الوضع التلقائي يدوّر بين عشرات المواضيع العربية تلقائياً.
+    // ★★★ وضع AI اختياري فقط:
+    // المسار الأساسي الآن هو الاكتشاف الواسع السريع من Archive.org، لأن البحث عنواناً-بعنوان عبر AI
+    // قد يستهلك وقت الدالة قبل أن يضيف كتباً. يمكن تفعيله فقط إذا كان الاستعلام "ai" أو "ai:موضوع".
     const AUTO_TOPICS = [
       "الفقه الإسلامي والأصول", "التفسير وعلوم القرآن", "الحديث وعلومه", "السيرة النبوية",
       "التاريخ الإسلامي", "التاريخ العربي الحديث", "التاريخ العالمي",
@@ -555,7 +557,7 @@ serve(async (req) => {
     ];
     const aiMatch = userQ.match(/^ai\s*(?::\s*(.*))?$/i);
     const mistralKey = Deno.env.get("MISTRAL_API_KEY");
-    const aiAuto = !aiMatch && !!mistralKey; // ← يعمل تلقائياً حتى بدون كلمة ai
+    const aiAuto = false;
     if (aiMatch || aiAuto) {
       const STARTED_AI = Date.now();
       const AI_MAX_MS = 115_000;
@@ -690,30 +692,33 @@ serve(async (req) => {
         if (insErr) console.warn("[auto-discover ai] insert error:", insErr.message);
       }
 
-      // التدوير: في الوضع التلقائي ندوّر عبر مواضيع AUTO_TOPICS؛ في وضع الكلمات اليدوية ندوّر بينها.
-      const rotateBase = aiAuto ? AUTO_TOPICS.length : totalQueries;
-      const nextIndex = rotateBase > 1 ? ((config.current_query_index ?? 0) + 1) % rotateBase : (queryIndex);
-      await supabase.from("auto_discover_config").update({
-        cursor: null,
-        current_query_index: nextIndex,
-        total_discovered: (config.total_discovered || 0) + aiFresh.length,
-        last_run_at: new Date().toISOString(),
-        last_status: `[AI${topic ? `:${topic}` : ""}] ولّد ${aiTitles.length} عنوان، بحث ${aiSearched}, أضيف ${aiFresh.length} (مكرر اسم ${aiDupTitle}، مكرر DB ${aiDupDb}، بدون نتائج ${aiNoResult}، بدون PDF ${aiBadPdf})`,
-        last_error: null,
-      }).eq("id", 1);
+      if (aiFresh.length > 0) {
+        const nextIndex = ((config.current_query_index ?? 0) + 1) % AUTO_TOPICS.length;
+        await supabase.from("auto_discover_config").update({
+          cursor: null,
+          current_query_index: nextIndex,
+          total_discovered: (config.total_discovered || 0) + aiFresh.length,
+          last_run_at: new Date().toISOString(),
+          last_status: `[AI${topic ? `:${topic}` : ""}] ولّد ${aiTitles.length} عنوان، بحث ${aiSearched}, أضيف ${aiFresh.length} (مكرر اسم ${aiDupTitle}، مكرر DB ${aiDupDb}، بدون نتائج ${aiNoResult}، بدون PDF ${aiBadPdf})`,
+          last_error: null,
+        }).eq("id", 1);
 
-      return new Response(JSON.stringify({
-        success: true,
-        mode: "ai",
-        topic,
-        generated: aiTitles.length,
-        searched: aiSearched,
-        inserted: aiFresh.length,
-        dup_title: aiDupTitle,
-        dup_db: aiDupDb,
-        no_result: aiNoResult,
-        bad_pdf: aiBadPdf,
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({
+          success: true,
+          mode: "ai",
+          topic,
+          generated: aiTitles.length,
+          searched: aiSearched,
+          inserted: aiFresh.length,
+          dup_title: aiDupTitle,
+          dup_db: aiDupDb,
+          no_result: aiNoResult,
+          bad_pdf: aiBadPdf,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // إذا لم يجد وضع AI كتباً صالحة في هذه الجولة، لا نفشل ولا نتوقف:
+      // نكمل مباشرة إلى وضع الاكتشاف الواسع من Archive.org داخل نفس التشغيل.
     }
 
 
@@ -734,8 +739,8 @@ serve(async (req) => {
     const shouldResetCursor = !config.cursor || Math.random() < 0.20;
 
     const STARTED_AT = Date.now();
-    const MAX_MS = 45_000;
-    const MAX_PAGES = 2;
+    const MAX_MS = 25_000;
+    const MAX_PAGES = 1;
     let cursor: string | null = shouldResetCursor ? null : config.cursor;
     let totalScanned = 0;
     let totalAlreadyKnown = 0;
