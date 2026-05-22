@@ -555,7 +555,9 @@ serve(async (req) => {
         if (insErr) console.warn("[auto-discover ai] insert error:", insErr.message);
       }
 
-      const nextIndex = totalQueries > 1 ? (queryIndex + 1) % totalQueries : queryIndex;
+      // التدوير: في الوضع التلقائي ندوّر عبر مواضيع AUTO_TOPICS؛ في وضع الكلمات اليدوية ندوّر بينها.
+      const rotateBase = aiAuto ? AUTO_TOPICS.length : totalQueries;
+      const nextIndex = rotateBase > 1 ? ((config.current_query_index ?? 0) + 1) % rotateBase : (queryIndex);
       await supabase.from("auto_discover_config").update({
         cursor: null,
         current_query_index: nextIndex,
