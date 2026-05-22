@@ -1,6 +1,8 @@
 
 // Edge function to delete a user and all their associated data
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.6'
+import { verifyAuth } from '../_shared/auth.ts'
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
