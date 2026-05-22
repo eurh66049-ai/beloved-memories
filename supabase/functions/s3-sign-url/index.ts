@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
+import { verifyAuth } from "../_shared/auth.ts";
 
 const GATEWAY_BASE = "https://connector-gateway.lovable.dev";
 
