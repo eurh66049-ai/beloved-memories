@@ -445,13 +445,12 @@ serve(async (req) => {
           .filter((f) => !/_bw\.pdf$|_text\.pdf$/i.test(f.name))
           .sort((a, b) => b.size - a.size);
         const pdfCandidates = [...preferred, ...pdfs.filter((f) => !preferred.some((p) => p.name === f.name))]
-          .slice(0, 4);
-        const MAX_BYTES = 45 * 1024 * 1024;
-        const chosen = (await Promise.all(pdfCandidates.map(async (candidate) => {
-          if (candidate.size && candidate.size > MAX_BYTES) return null;
-          const url = `https://archive.org/download/${encodeURIComponent(identifier)}/${encodeArchivePath(candidate.name)}`;
-          return await isDownloadableArchivePdf(url) ? { ...candidate, url } : null;
-        }))).find(Boolean);
+          .slice(0, 6);
+        const MAX_BYTES = 180 * 1024 * 1024;
+        const chosenFile = pdfCandidates.find((candidate) => !candidate.size || candidate.size <= MAX_BYTES);
+        const chosen = chosenFile
+          ? { ...chosenFile, url: `https://archive.org/download/${encodeURIComponent(identifier)}/${encodeArchivePath(chosenFile.name)}` }
+          : null;
         if (!chosen) return null;
 
         const images = files.filter((f) => typeof f.name === "string" && /\.(jpe?g|png)$/i.test(f.name) && !/_thumb|_small/i.test(f.name));
