@@ -30,8 +30,6 @@ const AutoDiscoverPanel: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
   const [pendingCount, setPendingCount] = useState<number>(0);
-  const [keywordsText, setKeywordsText] = useState('');
-  const defaultArabicQuery = 'collection:booksbylanguage_arabic AND mediatype:texts AND format:PDF';
 
   const load = async () => {
     setLoading(true);
@@ -42,8 +40,6 @@ const AutoDiscoverPanel: React.FC = () => {
       .maybeSingle();
     if (data) {
       setCfg(data as unknown as Config);
-      const list = Array.isArray((data as any).search_queries) ? (data as any).search_queries as string[] : [];
-      setKeywordsText(list.join('\n'));
     }
     const { count } = await supabase
       .from('bulk_upload_queue')
@@ -110,27 +106,6 @@ const AutoDiscoverPanel: React.FC = () => {
   const resetCursor = async () => {
     await save({ cursor: null } as Partial<Config>);
     toast({ title: 'تمت إعادة تعيين المؤشر', description: 'سيبدأ الاكتشاف من بداية النتائج في الدورة القادمة.' });
-  };
-
-  const saveKeywords = async () => {
-    const list = keywordsText
-      .split('\n')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (list.length === 0) {
-      toast({ title: 'القائمة فارغة', description: 'أضف كلمة واحدة على الأقل.', variant: 'destructive' });
-      return;
-    }
-    await save({ search_queries: list, current_query_index: 0, cursor: null } as Partial<Config>);
-    toast({ title: '✅ تم حفظ قائمة الكلمات', description: `${list.length} كلمة — يبدأ من الأولى.` });
-  };
-
-  const skipToNext = async () => {
-    const list = cfg?.search_queries || [];
-    if (list.length < 2) return;
-    const next = (((cfg?.current_query_index ?? 0) + 1) % list.length);
-    await save({ current_query_index: next, cursor: null } as Partial<Config>);
-    toast({ title: '⏭️ تم الانتقال للكلمة التالية', description: list[next] });
   };
 
   if (loading && !cfg) {
