@@ -292,10 +292,11 @@ serve(async (req) => {
     }
 
     const scrapeCount = 100; // archive.org scrape يتطلب count >= 100
-    const batchSize = Math.min(config.batch_size || 100, 200);
+    const batchSize = Math.min(Math.max(config.batch_size || 100, 25), 150);
+    const queueRoom = Math.max(0, HARD_CAP - pending);
     // الهدف: عدد الكتب الجديدة التي نريد إضافتها هذا التشغيل
-    // نضيف دفعة صغيرة آمنة كل تشغيل حتى لا تتجاوز الدالة حد CPU، ثم يكررها cron/التشغيل اليدوي.
-    const targetFresh = Math.max(threshold - pending, Math.min(batchSize, 10));
+    // نضيف دفعات كبيرة كل تشغيل، وcron سيعيد التشغيل حتى عندما يكون المستخدم خارج التطبيق.
+    const targetFresh = Math.max(1, Math.min(batchSize, 100, queueRoom));
 
     // كشف العناوين العشوائية / أسماء الملفات / السلاسل غير المفهومة
     function isRealTitle(t: string | null | undefined, identifier: string): boolean {
@@ -376,13 +377,34 @@ serve(async (req) => {
     // الشرط: يجب أن يحتوي العنوان على حروف عربية حقيقية (مجموعة الكتب عربية).
     function looksLikeRealArabicTitle(t: string): boolean {
       const s = (t || "").toString().trim();
-      if (s.length < 2) return false;
+      if (s.length < 3 || s.length > 220) return false;
       const arabicLetters = (s.match(/[\u0600-\u06FF]/g) || []).length;
       // يجب أن يحتوي على حرفين عربيين على الأقل
-      if (arabicLetters < 2) return false;
+      if (arabicLetters < 3) return false;
+      if (arabicLetters / Math.max(s.length, 1) < 0.35) return false;
+      if (/[_.]{2,}|\d{4,}|^[\d\W_]+$/.test(s)) return false;
+      if (/\.(pdf|epub|djvu|txt|zip|rar|jpg|png)$/i.test(s)) return false;
+      if (/^(scan|file|book|document|unknown|untitled|pdf|img|page|archive)[\s_\-\d]*$/i.test(s)) return false;
       // رفض تكرار الحرف نفسه 5 مرات (مثل ااااااا)
       if (/(.)\1{4,}/.test(s)) return false;
       return true;
+    }
+
+    function titleTokens(t: string): Set<string> {
+      return new Set(normalizeTitle(t).split(/(?=[\u0600-\u06FFa-z0-9])/u).join("").match(/[\u0600-\u06FF]{3,}|[a-z0-9]{3,}/g) || []);
+    }
+
+    function titleMatchesWanted(actual: string, wanted: string): boolean {
+      const a = normalizeTitle(actual);
+      const w = normalizeTitle(wanted);
+      if (!a || !w) return false;
+      if (a.includes(w) || w.includes(a)) return true;
+      const wantedTokens = titleTokens(wanted);
+      const actualTokens = titleTokens(actual);
+      if (wantedTokens.size === 0 || actualTokens.size === 0) return false;
+      let hits = 0;
+      for (const token of wantedTokens) if (actualTokens.has(token)) hits++;
+      return hits >= Math.max(1, Math.ceil(wantedTokens.size * 0.6));
     }
 
     async function resolveBook(identifier: string, fallbackTitle: string, fallbackAuthor: string | null): Promise<{ title: string; url: string; author: string | null; coverUrl: string | null } | null> {
