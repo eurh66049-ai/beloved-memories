@@ -426,14 +426,33 @@ serve(async (req) => {
       return known;
     }
 
-    // ★★★ وضع AI: إذا كانت الكلمة المفتاحية "ai" أو تبدأ بـ "ai:"
-    // نطلب من Mistral توليد أسماء كتب حقيقية، ونبحث عن كل اسم في Archive.org بدقة.
+    // ★★★ وضع AI تلقائي بالكامل:
+    // - يعمل دائماً عند توفر MISTRAL_API_KEY بدون أي إعداد يدوي.
+    // - أو عند تمرير كلمة "ai" / "ai:موضوع" في search_queries.
+    // - في الوضع التلقائي يدوّر بين عشرات المواضيع العربية تلقائياً.
+    const AUTO_TOPICS = [
+      "الفقه الإسلامي والأصول", "التفسير وعلوم القرآن", "الحديث وعلومه", "السيرة النبوية",
+      "التاريخ الإسلامي", "التاريخ العربي الحديث", "التاريخ العالمي",
+      "الأدب العربي الكلاسيكي", "الشعر العربي القديم", "الشعر العربي الحديث",
+      "الروايات العربية الكلاسيكية", "الروايات العربية المعاصرة", "القصة القصيرة العربية",
+      "الفلسفة الإسلامية", "الفلسفة الغربية المترجمة", "علم الكلام والعقيدة",
+      "النحو والصرف", "البلاغة العربية", "المعاجم اللغوية",
+      "علم النفس", "علم الاجتماع", "الاقتصاد والإدارة", "السياسة والفكر السياسي",
+      "التصوف والأخلاق", "التراجم والسير", "الرحلات والجغرافيا",
+      "العلوم والرياضيات التراثية", "الطب التراثي", "الفلك والتنجيم القديم",
+      "أدب الأطفال", "كتب التنمية الذاتية المترجمة", "النقد الأدبي",
+    ];
     const aiMatch = userQ.match(/^ai\s*(?::\s*(.*))?$/i);
-    if (aiMatch) {
+    const mistralKey = Deno.env.get("MISTRAL_API_KEY");
+    const aiAuto = !aiMatch && !!mistralKey; // ← يعمل تلقائياً حتى بدون كلمة ai
+    if (aiMatch || aiAuto) {
       const STARTED_AI = Date.now();
       const AI_MAX_MS = 50_000;
-      const topic = (aiMatch[1] || "").trim() || null;
+      // الموضوع: من المستخدم، أو تدوير تلقائي حسب current_query_index، أو عشوائي.
+      const autoTopic = AUTO_TOPICS[((config.current_query_index ?? 0) + Math.floor(Math.random() * 3)) % AUTO_TOPICS.length];
+      const topic = aiMatch ? ((aiMatch[1] || "").trim() || null) : autoTopic;
       const targetAI = Math.min(config.batch_size || 100, 100);
+
 
       // 1) عيّنة عناوين موجودة لتجنب التكرار
       const [{ data: existingApproved }, { data: existingQueue }] = await Promise.all([
@@ -536,7 +555,9 @@ serve(async (req) => {
         if (insErr) console.warn("[auto-discover ai] insert error:", insErr.message);
       }
 
-      const nextIndex = totalQueries > 1 ? (queryIndex + 1) % totalQueries : queryIndex;
+      // التدوير: في الوضع التلقائي ندوّر عبر مواضيع AUTO_TOPICS؛ في وضع الكلمات اليدوية ندوّر بينها.
+      const rotateBase = aiAuto ? AUTO_TOPICS.length : totalQueries;
+      const nextIndex = rotateBase > 1 ? ((config.current_query_index ?? 0) + 1) % rotateBase : (queryIndex);
       await supabase.from("auto_discover_config").update({
         cursor: null,
         current_query_index: nextIndex,
