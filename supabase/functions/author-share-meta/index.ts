@@ -1,9 +1,22 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { escapeHtml } from '../_shared/auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
+
+// Strict URL allow-list: only http(s) URLs without quotes/whitespace
+const safeUrl = (u: unknown): string => {
+  if (typeof u !== 'string') return ''
+  const s = u.trim()
+  if (!/^https?:\/\/[^\s"'<>]+$/i.test(s)) return ''
+  return s
+}
+// Escape for embedding inside a <script>...</script> block
+const jsonEncode = (v: unknown): string =>
+  JSON.stringify(v ?? '').replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')
+
 
 interface Database {
   public: {
