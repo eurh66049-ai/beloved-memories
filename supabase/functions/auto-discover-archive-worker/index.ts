@@ -296,11 +296,11 @@ serve(async (req) => {
     }
 
     const scrapeCount = 100; // archive.org scrape يتطلب count >= 100
-    const batchSize = Math.min(Math.max(config.batch_size || 25, 10), 25);
+    const batchSize = Math.min(Math.max(config.batch_size || 8, 5), 8);
     const queueRoom = Math.max(0, HARD_CAP - pending);
     // الهدف: عدد الكتب الجديدة التي نريد إضافتها هذا التشغيل
     // نضيف دفعات كبيرة كل تشغيل، وcron سيعيد التشغيل حتى عندما يكون المستخدم خارج التطبيق.
-    const targetFresh = Math.max(1, Math.min(batchSize, 25, queueRoom));
+    const targetFresh = Math.max(1, Math.min(batchSize, 8, queueRoom));
 
     // كشف العناوين العشوائية / أسماء الملفات / السلاسل غير المفهومة
     function isRealTitle(t: string | null | undefined, identifier: string): boolean {
@@ -739,8 +739,8 @@ serve(async (req) => {
     const shouldResetCursor = !config.cursor || Math.random() < 0.20;
 
     const STARTED_AT = Date.now();
-    const MAX_MS = 45_000;
-    const MAX_PAGES = 2;
+    const MAX_MS = 25_000;
+    const MAX_PAGES = 1;
     let cursor: string | null = shouldResetCursor ? null : config.cursor;
     let totalScanned = 0;
     let totalAlreadyKnown = 0;
