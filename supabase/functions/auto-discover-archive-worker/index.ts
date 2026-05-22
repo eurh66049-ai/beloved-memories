@@ -268,11 +268,16 @@ serve(async (req) => {
       });
     }
 
-    // 3) تحضير الاستعلام الحالي من قائمة الكلمات (cycling).
-    // إن لم تكن هنالك قائمة، نعود لاستعلام واحد قديم.
-    const queriesList: string[] = Array.isArray(config.search_queries) && config.search_queries.length > 0
-      ? (config.search_queries as string[]).map((s) => String(s || "").trim()).filter(Boolean)
-      : [(config.search_query || DEFAULT_ARABIC_ARCHIVE_QUERY).toString()];
+    // 3) تحضير استعلام تلقائي قوي بالكامل.
+    // لم نعد نعتمد على قائمة كلمات يكتبها المستخدم؛ النظام يدوّر داخلياً بين بوابات واسعة وموثوقة.
+    const AUTO_DISCOVERY_QUERIES = [
+      `collection:booksbylanguage_arabic AND mediatype:texts AND format:PDF`,
+      `language:Arabic AND mediatype:texts AND format:PDF`,
+      `(collection:opensource_arabic OR collection:ArabicBooks OR collection:booksbylanguage_arabic) AND mediatype:texts AND format:PDF`,
+      `(subject:Arabic OR subject:العربية OR subject:اسلام OR subject:تاريخ OR subject:ادب) AND mediatype:texts AND format:PDF`,
+      `(creator:* OR title:*) AND language:Arabic AND mediatype:texts AND format:PDF`,
+    ];
+    const queriesList: string[] = AUTO_DISCOVERY_QUERIES;
     const totalQueries = queriesList.length;
     let queryIndex = ((config.current_query_index ?? 0) % totalQueries + totalQueries) % totalQueries;
     const userQ = (queriesList[queryIndex] || "").toString().trim();
