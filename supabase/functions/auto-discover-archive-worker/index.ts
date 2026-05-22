@@ -694,30 +694,33 @@ serve(async (req) => {
         if (insErr) console.warn("[auto-discover ai] insert error:", insErr.message);
       }
 
-      // التدوير: في الوضع التلقائي ندوّر عبر مواضيع AUTO_TOPICS؛ في وضع الكلمات اليدوية ندوّر بينها.
-      const rotateBase = aiAuto ? AUTO_TOPICS.length : totalQueries;
-      const nextIndex = rotateBase > 1 ? ((config.current_query_index ?? 0) + 1) % rotateBase : (queryIndex);
-      await supabase.from("auto_discover_config").update({
-        cursor: null,
-        current_query_index: nextIndex,
-        total_discovered: (config.total_discovered || 0) + aiFresh.length,
-        last_run_at: new Date().toISOString(),
-        last_status: `[AI${topic ? `:${topic}` : ""}] ولّد ${aiTitles.length} عنوان، بحث ${aiSearched}, أضيف ${aiFresh.length} (مكرر اسم ${aiDupTitle}، مكرر DB ${aiDupDb}، بدون نتائج ${aiNoResult}، بدون PDF ${aiBadPdf})`,
-        last_error: null,
-      }).eq("id", 1);
+      if (aiFresh.length > 0) {
+        const nextIndex = ((config.current_query_index ?? 0) + 1) % AUTO_TOPICS.length;
+        await supabase.from("auto_discover_config").update({
+          cursor: null,
+          current_query_index: nextIndex,
+          total_discovered: (config.total_discovered || 0) + aiFresh.length,
+          last_run_at: new Date().toISOString(),
+          last_status: `[AI${topic ? `:${topic}` : ""}] ولّد ${aiTitles.length} عنوان، بحث ${aiSearched}, أضيف ${aiFresh.length} (مكرر اسم ${aiDupTitle}، مكرر DB ${aiDupDb}، بدون نتائج ${aiNoResult}، بدون PDF ${aiBadPdf})`,
+          last_error: null,
+        }).eq("id", 1);
 
-      return new Response(JSON.stringify({
-        success: true,
-        mode: "ai",
-        topic,
-        generated: aiTitles.length,
-        searched: aiSearched,
-        inserted: aiFresh.length,
-        dup_title: aiDupTitle,
-        dup_db: aiDupDb,
-        no_result: aiNoResult,
-        bad_pdf: aiBadPdf,
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({
+          success: true,
+          mode: "ai",
+          topic,
+          generated: aiTitles.length,
+          searched: aiSearched,
+          inserted: aiFresh.length,
+          dup_title: aiDupTitle,
+          dup_db: aiDupDb,
+          no_result: aiNoResult,
+          bad_pdf: aiBadPdf,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // إذا لم يجد وضع AI كتباً صالحة في هذه الجولة، لا نفشل ولا نتوقف:
+      // نكمل مباشرة إلى وضع الاكتشاف الواسع من Archive.org داخل نفس التشغيل.
     }
 
 
