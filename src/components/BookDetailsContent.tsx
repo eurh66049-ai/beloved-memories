@@ -353,15 +353,15 @@ const BookDetailsContent: React.FC<BookDetailsContentProps> = ({ book }) => {
         <div className="space-y-6">
           <div className="sticky top-6">
             {/* صورة الغلاف */}
-            <div className="w-full max-w-[280px] mx-auto aspect-[3/4] mb-4 rounded-lg overflow-hidden shadow-lg bg-muted">
+            <div className="w-full max-w-[280px] mx-auto mb-4 flex justify-center">
               {book.cover_image_url ? (
                 <img
                   src={optimizeImageUrl(book.cover_image_url || '', 'cover')}
                   alt={book.title}
-                  className="w-full h-full object-contain"
+                  className="max-w-full h-auto rounded-lg shadow-lg object-contain"
                 />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center">
+                <div className="w-full aspect-[3/4] bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center rounded-lg shadow-lg">
                   <BookOpen className="h-24 w-24 text-blue-400 dark:text-blue-300" />
                 </div>
               )}
