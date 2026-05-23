@@ -1040,15 +1040,13 @@ const BookDetailsContent = () => {
                 {/* صورة الكتاب والمعلومات الأساسية في الوسط */}
                 <div className="text-center mb-4">
                   {/* صورة الكتاب */}
-                  <div className="w-36 mx-auto mb-4">
-                    <AspectRatio ratio={3 / 4} className="bg-muted rounded-lg overflow-hidden">
-                      <img
-                        src={validateCoverImage() || '/src/assets/default-book-cover.png'}
-                        alt={`غلاف كتاب ${book.title}`}
-                        className="w-full h-full object-contain"
-                        loading="eager"
-                      />
-                    </AspectRatio>
+                  <div className="w-36 mx-auto mb-4 flex justify-center">
+                    <img
+                      src={validateCoverImage() || '/src/assets/default-book-cover.png'}
+                      alt={`غلاف كتاب ${book.title}`}
+                      className="max-w-full h-auto rounded-lg shadow-sm object-contain"
+                      loading="eager"
+                    />
                   </div>
 
                   {/* عنوان الكتاب */}
