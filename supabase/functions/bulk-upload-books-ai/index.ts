@@ -1228,8 +1228,10 @@ async function upsertApprovedBook(book: InputBook, meta: AIBookMeta, supabaseCli
   } else {
     console.warn(`[AI Bulk] ⚠️ تعذر رفع نسخة S3 لغلاف "${title}" — سيُستخدم رابط Supabase مؤقتاً`);
   }
-  const baseSlug = generateSlug(title, meta.author);
-  const slug = baseSlug ? `${baseSlug}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}` : undefined;
+  // نترك slug فارغًا ليقوم trigger auto_generate_book_slug في قاعدة البيانات
+  // بإنشاء slug نظيف ومتفرد (مع إضافة -1 / -2 فقط عند الحاجة) بدل لاحقات عشوائية قبيحة.
+  const slug: string | undefined = undefined;
+  void generateSlug;
 
   // عدد صفحات الكتاب: نفس ميزة "انشر كتابك" فقط — القيمة الراجعة من add-pdf-watermark.
   // عدد الصفحات: نفضّل ما يرجعه add-pdf-watermark، ثم نسقط على ما حسبناه محليًا من PDF.
