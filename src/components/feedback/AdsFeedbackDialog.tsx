@@ -67,7 +67,7 @@ const AdsFeedbackDialog: React.FC<Props> = ({ open, onOpenChange }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto pb-[calc(env(safe-area-inset-bottom)+6rem)]" dir="rtl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MegaphoneIcon className="h-5 w-5 text-primary" />
