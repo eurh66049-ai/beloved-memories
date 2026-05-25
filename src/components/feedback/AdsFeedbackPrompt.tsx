@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import AdsFeedbackDialog from './AdsFeedbackDialog';
 
 const STORAGE_KEY = 'ads_feedback_submitted_v1';
-const DELAY_MS = 25000; // 25s after page load
+const DELAY_MS = 1500; // 1.5s after page load (almost immediate)
 
 const AdsFeedbackPrompt: React.FC = () => {
   const [open, setOpen] = useState(false);
