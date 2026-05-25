@@ -116,7 +116,7 @@ const AdsFeedbackDialog: React.FC<Props> = ({ open, onOpenChange }) => {
           </div>
         </div>
 
-        <DialogFooter className="flex-row gap-2">
+        <DialogFooter className="flex-row gap-2 sticky bottom-0 bg-background pt-3 -mx-6 px-6 border-t">
           <Button variant="ghost" onClick={handleDismiss} disabled={submitting}>لاحقاً</Button>
           <Button onClick={handleSubmit} disabled={submitting || !impactLevel} className="flex-1">
             {submitting ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : null}
