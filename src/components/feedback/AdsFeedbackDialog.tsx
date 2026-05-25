@@ -68,12 +68,12 @@ const AdsFeedbackDialog: React.FC<Props> = ({ open, onOpenChange }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[calc(100vh-5.5rem)] overflow-y-auto top-auto bottom-[4.5rem] translate-y-0 sm:top-[50%] sm:bottom-auto sm:translate-y-[-50%] rounded-b-none sm:rounded-lg" dir="rtl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <MegaphoneIcon className="h-5 w-5 text-primary" />
-            هل تؤثر الإعلانات الجديدة على تجربتك؟
+        <DialogHeader className="sticky top-0 bg-background pb-3 -mx-6 px-6 pt-1 z-10 border-b">
+          <DialogTitle className="flex items-center gap-2 text-right pr-6">
+            <MegaphoneIcon className="h-5 w-5 text-primary shrink-0" />
+            <span>هل تؤثر الإعلانات الجديدة على تجربتك؟</span>
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-right">
             أضفنا مؤخراً بعض الإعلانات لدعم الموقع. رأيك يهمنا — شاركنا تجربتك حتى نحسّن من جودة التصفح وقراءة الكتب.
           </DialogDescription>
         </DialogHeader>
