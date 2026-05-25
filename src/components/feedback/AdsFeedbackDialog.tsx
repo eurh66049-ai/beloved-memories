@@ -67,8 +67,8 @@ const AdsFeedbackDialog: React.FC<Props> = ({ open, onOpenChange }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100%-3rem)] max-w-sm max-h-[42svh] overflow-y-auto top-auto bottom-[5rem] translate-y-0 gap-1 p-2 sm:top-[50%] sm:bottom-auto sm:max-h-[80vh] sm:translate-y-[-50%] sm:rounded-lg" dir="rtl">
-        <DialogHeader className="sticky top-0 bg-background pb-2 -mx-3 px-3 pt-1 z-10 border-b">
+      <DialogContent className="w-[calc(100%-3rem)] max-w-sm max-h-[42svh] overflow-hidden top-auto bottom-[5rem] translate-y-0 gap-1 p-2 sm:top-[50%] sm:bottom-auto sm:max-h-[80vh] sm:translate-y-[-50%] sm:rounded-lg" dir="rtl">
+        <DialogHeader className="shrink-0 bg-background pb-2 -mx-2 px-2 pt-1 border-b">
           <DialogTitle className="flex items-center gap-1.5 text-right pr-6 text-xs leading-5">
             <MegaphoneIcon className="h-3.5 w-3.5 text-primary shrink-0" />
             <span>هل تؤثر الإعلانات الجديدة على تجربتك؟</span>
@@ -78,7 +78,7 @@ const AdsFeedbackDialog: React.FC<Props> = ({ open, onOpenChange }) => {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-1 py-0.5">
+        <div className="max-h-[24svh] overflow-y-auto space-y-1 py-0.5 pr-1">
           <div>
             <Label className="text-[11px] font-semibold mb-0.5 block">ما مدى تأثير الإعلانات عليك؟</Label>
             <RadioGroup value={impactLevel} onValueChange={setImpactLevel} className="grid grid-cols-2 gap-1">
@@ -119,7 +119,7 @@ const AdsFeedbackDialog: React.FC<Props> = ({ open, onOpenChange }) => {
           </div>
         </div>
 
-        <DialogFooter className="flex-row gap-2 pt-1">
+        <DialogFooter className="shrink-0 flex-row gap-2 pt-2 border-t bg-background">
           <Button variant="ghost" size="sm" onClick={handleDismiss} disabled={submitting} className="h-8 text-xs">لاحقاً</Button>
           <Button size="sm" onClick={handleSubmit} disabled={submitting || !impactLevel} className="h-8 flex-1 text-xs">
             {submitting ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : null}
