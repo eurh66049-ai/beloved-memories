@@ -67,44 +67,44 @@ const AdsFeedbackDialog: React.FC<Props> = ({ open, onOpenChange }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100%-1.5rem)] max-w-md max-h-[58dvh] overflow-y-auto top-auto bottom-[4.5rem] translate-y-0 gap-1 p-3 sm:top-[50%] sm:bottom-auto sm:max-h-[80vh] sm:translate-y-[-50%] sm:rounded-lg" dir="rtl">
+      <DialogContent className="w-[calc(100%-2.5rem)] max-w-sm max-h-[46svh] overflow-y-auto top-auto bottom-[5rem] translate-y-0 gap-1 p-2.5 sm:top-[50%] sm:bottom-auto sm:max-h-[80vh] sm:translate-y-[-50%] sm:rounded-lg" dir="rtl">
         <DialogHeader className="sticky top-0 bg-background pb-2 -mx-3 px-3 pt-1 z-10 border-b">
-          <DialogTitle className="flex items-center gap-2 text-right pr-6 text-sm leading-5">
-            <MegaphoneIcon className="h-4 w-4 text-primary shrink-0" />
+          <DialogTitle className="flex items-center gap-1.5 text-right pr-6 text-xs leading-5">
+            <MegaphoneIcon className="h-3.5 w-3.5 text-primary shrink-0" />
             <span>هل تؤثر الإعلانات الجديدة على تجربتك؟</span>
           </DialogTitle>
-          <DialogDescription className="text-right text-xs leading-5">
+          <DialogDescription className="text-right text-[11px] leading-4">
             رأيك يهمنا لتحسين جودة التصفح وقراءة الكتب.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-1.5 py-1">
           <div>
-            <Label className="text-xs font-semibold mb-1 block">ما مدى تأثير الإعلانات عليك؟</Label>
+            <Label className="text-[11px] font-semibold mb-0.5 block">ما مدى تأثير الإعلانات عليك؟</Label>
             <RadioGroup value={impactLevel} onValueChange={setImpactLevel}>
               {IMPACT_OPTIONS.map((opt) => (
-                <div key={opt.value} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-muted/50 cursor-pointer" onClick={() => setImpactLevel(opt.value)}>
-                  <RadioGroupItem value={opt.value} id={opt.value} />
-                  <Label htmlFor={opt.value} className="cursor-pointer flex-1 text-right text-xs leading-5">{opt.label}</Label>
+                <div key={opt.value} className="flex items-center gap-1.5 py-0.5 px-1.5 rounded hover:bg-muted/50 cursor-pointer" onClick={() => setImpactLevel(opt.value)}>
+                  <RadioGroupItem value={opt.value} id={opt.value} className="h-3.5 w-3.5" />
+                  <Label htmlFor={opt.value} className="cursor-pointer flex-1 text-right text-[11px] leading-4">{opt.label}</Label>
                 </div>
               ))}
             </RadioGroup>
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs font-semibold block">أين تلاحظ التأثير؟ (اختياري)</Label>
-            <div className="flex items-center gap-2 py-1 px-2">
-              <Checkbox id="reading" checked={affectsReading} onCheckedChange={(v) => setAffectsReading(!!v)} />
-              <Label htmlFor="reading" className="cursor-pointer text-xs">📖 أثناء قراءة الكتب</Label>
+            <Label className="text-[11px] font-semibold block">أين تلاحظ التأثير؟ (اختياري)</Label>
+            <div className="flex items-center gap-1.5 py-0.5 px-1.5">
+              <Checkbox id="reading" checked={affectsReading} onCheckedChange={(v) => setAffectsReading(!!v)} className="h-3.5 w-3.5" />
+              <Label htmlFor="reading" className="cursor-pointer text-[11px]">📖 أثناء قراءة الكتب</Label>
             </div>
-            <div className="flex items-center gap-2 py-1 px-2">
-              <Checkbox id="browsing" checked={affectsBrowsing} onCheckedChange={(v) => setAffectsBrowsing(!!v)} />
-              <Label htmlFor="browsing" className="cursor-pointer text-xs">🌐 أثناء تصفح الموقع</Label>
+            <div className="flex items-center gap-1.5 py-0.5 px-1.5">
+              <Checkbox id="browsing" checked={affectsBrowsing} onCheckedChange={(v) => setAffectsBrowsing(!!v)} className="h-3.5 w-3.5" />
+              <Label htmlFor="browsing" className="cursor-pointer text-[11px]">🌐 أثناء تصفح الموقع</Label>
             </div>
           </div>
 
           <div>
-            <Label htmlFor="comment" className="text-xs font-semibold mb-1 block">ملاحظة إضافية (اختياري)</Label>
+            <Label htmlFor="comment" className="text-[11px] font-semibold mb-0.5 block">ملاحظة إضافية (اختياري)</Label>
             <Textarea
               id="comment"
               value={comment}
@@ -112,14 +112,14 @@ const AdsFeedbackDialog: React.FC<Props> = ({ open, onOpenChange }) => {
               placeholder="أخبرنا بمزيد من التفاصيل..."
               maxLength={1000}
               rows={2}
-              className="min-h-[3rem] text-xs"
+              className="min-h-[2.5rem] text-[11px] py-1.5"
             />
           </div>
         </div>
 
         <DialogFooter className="flex-row gap-2 pt-1">
-          <Button variant="ghost" size="sm" onClick={handleDismiss} disabled={submitting}>لاحقاً</Button>
-          <Button size="sm" onClick={handleSubmit} disabled={submitting || !impactLevel} className="flex-1">
+          <Button variant="ghost" size="sm" onClick={handleDismiss} disabled={submitting} className="h-8 text-xs">لاحقاً</Button>
+          <Button size="sm" onClick={handleSubmit} disabled={submitting || !impactLevel} className="h-8 flex-1 text-xs">
             {submitting ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : null}
             إرسال رأيي
           </Button>
