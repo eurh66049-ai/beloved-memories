@@ -14,6 +14,7 @@ import { useUserPresenceTracker } from '@/hooks/useUserPresenceTracker';
 import { useAISmartNotifications } from '@/hooks/useAISmartNotifications';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import UnlimitedDownloadsPrompt from '@/components/pwa/UnlimitedDownloadsPrompt';
+import AdsFeedbackPrompt from '@/components/feedback/AdsFeedbackPrompt';
 
 // Critical route - eagerly loaded
 import Index from './pages/Index';
@@ -135,6 +136,7 @@ function AppContent() {
       
       {!isReaderPage && <BottomNavigation />}
       {!isReaderPage && <UnlimitedDownloadsPrompt />}
+      {!isReaderPage && <AdsFeedbackPrompt />}
     </div>
   );
 }
