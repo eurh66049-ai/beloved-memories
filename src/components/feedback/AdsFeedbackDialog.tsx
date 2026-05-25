@@ -67,44 +67,44 @@ const AdsFeedbackDialog: React.FC<Props> = ({ open, onOpenChange }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100%-1rem)] max-w-lg max-h-[calc(100dvh-12rem)] overflow-y-auto top-auto bottom-[4.25rem] translate-y-0 gap-2 p-4 sm:top-[50%] sm:bottom-auto sm:max-h-[85vh] sm:translate-y-[-50%] sm:rounded-lg" dir="rtl">
-        <DialogHeader className="sticky top-0 bg-background pb-2 -mx-4 px-4 pt-1 z-10 border-b">
-          <DialogTitle className="flex items-center gap-2 text-right pr-6 text-base leading-6">
+      <DialogContent className="w-[calc(100%-1.5rem)] max-w-md max-h-[58dvh] overflow-y-auto top-auto bottom-[4.5rem] translate-y-0 gap-1 p-3 sm:top-[50%] sm:bottom-auto sm:max-h-[80vh] sm:translate-y-[-50%] sm:rounded-lg" dir="rtl">
+        <DialogHeader className="sticky top-0 bg-background pb-2 -mx-3 px-3 pt-1 z-10 border-b">
+          <DialogTitle className="flex items-center gap-2 text-right pr-6 text-sm leading-5">
             <MegaphoneIcon className="h-4 w-4 text-primary shrink-0" />
             <span>هل تؤثر الإعلانات الجديدة على تجربتك؟</span>
           </DialogTitle>
           <DialogDescription className="text-right text-xs leading-5">
-            أضفنا مؤخراً بعض الإعلانات لدعم الموقع. رأيك يهمنا — شاركنا تجربتك حتى نحسّن من جودة التصفح وقراءة الكتب.
+            رأيك يهمنا لتحسين جودة التصفح وقراءة الكتب.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-2 py-1">
+        <div className="space-y-1.5 py-1">
           <div>
-            <Label className="text-sm font-semibold mb-2 block">ما مدى تأثير الإعلانات عليك؟</Label>
+            <Label className="text-xs font-semibold mb-1 block">ما مدى تأثير الإعلانات عليك؟</Label>
             <RadioGroup value={impactLevel} onValueChange={setImpactLevel}>
               {IMPACT_OPTIONS.map((opt) => (
-                <div key={opt.value} className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50 cursor-pointer" onClick={() => setImpactLevel(opt.value)}>
+                <div key={opt.value} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-muted/50 cursor-pointer" onClick={() => setImpactLevel(opt.value)}>
                   <RadioGroupItem value={opt.value} id={opt.value} />
-                  <Label htmlFor={opt.value} className="cursor-pointer flex-1 text-right text-sm">{opt.label}</Label>
+                  <Label htmlFor={opt.value} className="cursor-pointer flex-1 text-right text-xs leading-5">{opt.label}</Label>
                 </div>
               ))}
             </RadioGroup>
           </div>
 
           <div className="space-y-1">
-            <Label className="text-sm font-semibold block">أين تلاحظ التأثير؟ (اختياري)</Label>
+            <Label className="text-xs font-semibold block">أين تلاحظ التأثير؟ (اختياري)</Label>
             <div className="flex items-center gap-2 py-1 px-2">
               <Checkbox id="reading" checked={affectsReading} onCheckedChange={(v) => setAffectsReading(!!v)} />
-              <Label htmlFor="reading" className="cursor-pointer text-sm">📖 أثناء قراءة الكتب</Label>
+              <Label htmlFor="reading" className="cursor-pointer text-xs">📖 أثناء قراءة الكتب</Label>
             </div>
             <div className="flex items-center gap-2 py-1 px-2">
               <Checkbox id="browsing" checked={affectsBrowsing} onCheckedChange={(v) => setAffectsBrowsing(!!v)} />
-              <Label htmlFor="browsing" className="cursor-pointer text-sm">🌐 أثناء تصفح الموقع</Label>
+              <Label htmlFor="browsing" className="cursor-pointer text-xs">🌐 أثناء تصفح الموقع</Label>
             </div>
           </div>
 
           <div>
-            <Label htmlFor="comment" className="text-sm font-semibold mb-1 block">ملاحظة إضافية (اختياري)</Label>
+            <Label htmlFor="comment" className="text-xs font-semibold mb-1 block">ملاحظة إضافية (اختياري)</Label>
             <Textarea
               id="comment"
               value={comment}
@@ -112,14 +112,14 @@ const AdsFeedbackDialog: React.FC<Props> = ({ open, onOpenChange }) => {
               placeholder="أخبرنا بمزيد من التفاصيل..."
               maxLength={1000}
               rows={2}
-              className="min-h-[4rem]"
+              className="min-h-[3rem] text-xs"
             />
           </div>
         </div>
 
-        <DialogFooter className="flex-row gap-2">
-          <Button variant="ghost" onClick={handleDismiss} disabled={submitting}>لاحقاً</Button>
-          <Button onClick={handleSubmit} disabled={submitting || !impactLevel} className="flex-1">
+        <DialogFooter className="flex-row gap-2 pt-1">
+          <Button variant="ghost" size="sm" onClick={handleDismiss} disabled={submitting}>لاحقاً</Button>
+          <Button size="sm" onClick={handleSubmit} disabled={submitting || !impactLevel} className="flex-1">
             {submitting ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : null}
             إرسال رأيي
           </Button>
