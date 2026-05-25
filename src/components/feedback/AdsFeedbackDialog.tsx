@@ -1,0 +1,131 @@
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { MegaphoneIcon, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+
+const STORAGE_KEY = 'ads_feedback_submitted_v1';
+
+const IMPACT_OPTIONS = [
+  { value: 'no_impact', label: 'لا تؤثر إطلاقاً 👍' },
+  { value: 'slight', label: 'تأثير بسيط ومقبول' },
+  { value: 'moderate', label: 'تأثير متوسط' },
+  { value: 'heavy', label: 'تأثير كبير ومزعج' },
+  { value: 'unusable', label: 'تعيقني عن استخدام الموقع 😣' },
+];
+
+interface Props {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}
+
+const AdsFeedbackDialog: React.FC<Props> = ({ open, onOpenChange }) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [impactLevel, setImpactLevel] = useState<string>('');
+  const [affectsReading, setAffectsReading] = useState(false);
+  const [affectsBrowsing, setAffectsBrowsing] = useState(false);
+  const [comment, setComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!impactLevel) {
+      toast({ title: 'يرجى اختيار مستوى التأثير', variant: 'destructive' });
+      return;
+    }
+    setSubmitting(true);
+    const { error } = await supabase.from('ads_feedback').insert({
+      user_id: user?.id || null,
+      user_email: user?.email || null,
+      user_name: (user?.user_metadata as any)?.full_name || (user?.user_metadata as any)?.name || null,
+      impact_level: impactLevel,
+      affects_reading: affectsReading,
+      affects_browsing: affectsBrowsing,
+      comment: comment.trim() || null,
+    });
+    setSubmitting(false);
+
+    if (error) {
+      toast({ title: 'تعذر إرسال رأيك', description: error.message, variant: 'destructive' });
+      return;
+    }
+    try { localStorage.setItem(STORAGE_KEY, '1'); } catch {}
+    toast({ title: 'شكراً لك! 🙏', description: 'تم استلام رأيك وسيساعدنا في تحسين الموقع.' });
+    onOpenChange(false);
+  };
+
+  const handleDismiss = () => {
+    try { localStorage.setItem(STORAGE_KEY, 'dismissed'); } catch {}
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <MegaphoneIcon className="h-5 w-5 text-primary" />
+            هل تؤثر الإعلانات الجديدة على تجربتك؟
+          </DialogTitle>
+          <DialogDescription>
+            أضفنا مؤخراً بعض الإعلانات لدعم الموقع. رأيك يهمنا — شاركنا تجربتك حتى نحسّن من جودة التصفح وقراءة الكتب.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-5 py-2">
+          <div>
+            <Label className="text-base font-semibold mb-3 block">ما مدى تأثير الإعلانات عليك؟</Label>
+            <RadioGroup value={impactLevel} onValueChange={setImpactLevel}>
+              {IMPACT_OPTIONS.map((opt) => (
+                <div key={opt.value} className="flex items-center gap-2 p-2 rounded hover:bg-muted/50 cursor-pointer" onClick={() => setImpactLevel(opt.value)}>
+                  <RadioGroupItem value={opt.value} id={opt.value} />
+                  <Label htmlFor={opt.value} className="cursor-pointer flex-1 text-right">{opt.label}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-base font-semibold block">أين تلاحظ التأثير؟ (اختياري)</Label>
+            <div className="flex items-center gap-2 p-2">
+              <Checkbox id="reading" checked={affectsReading} onCheckedChange={(v) => setAffectsReading(!!v)} />
+              <Label htmlFor="reading" className="cursor-pointer">📖 أثناء قراءة الكتب</Label>
+            </div>
+            <div className="flex items-center gap-2 p-2">
+              <Checkbox id="browsing" checked={affectsBrowsing} onCheckedChange={(v) => setAffectsBrowsing(!!v)} />
+              <Label htmlFor="browsing" className="cursor-pointer">🌐 أثناء تصفح الموقع</Label>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="comment" className="text-base font-semibold mb-2 block">ملاحظة إضافية (اختياري)</Label>
+            <Textarea
+              id="comment"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="أخبرنا بمزيد من التفاصيل..."
+              maxLength={1000}
+              rows={3}
+            />
+          </div>
+        </div>
+
+        <DialogFooter className="flex-row gap-2">
+          <Button variant="ghost" onClick={handleDismiss} disabled={submitting}>لاحقاً</Button>
+          <Button onClick={handleSubmit} disabled={submitting || !impactLevel} className="flex-1">
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : null}
+            إرسال رأيي
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default AdsFeedbackDialog;

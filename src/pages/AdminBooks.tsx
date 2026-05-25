@@ -25,6 +25,7 @@ import SiteUpdatesManager from '@/components/admin/SiteUpdatesManager';
 import TextExtractionManager from '@/components/admin/TextExtractionManager';
 import BulkEmailManager from '@/components/admin/BulkEmailManager';
 import S3MigrationStatus from '@/components/admin/S3MigrationStatus';
+import AdsFeedbackManager from '@/components/admin/AdsFeedbackManager';
 import { optimizeImageUrl } from '@/utils/imageProxy';
 
 
@@ -816,6 +817,9 @@ const AdminBooks: React.FC = () => {
                 <TabsTrigger value="s3_migration" className="flex-shrink-0 text-sm md:text-lg px-4 md:px-8 whitespace-nowrap">
                   ☁️ نقل S3
                 </TabsTrigger>
+                <TabsTrigger value="ads_feedback" className="flex-shrink-0 text-sm md:text-lg px-4 md:px-8 whitespace-nowrap">
+                  📣 آراء الإعلانات
+                </TabsTrigger>
               </TabsList>
             </div>
             
@@ -858,6 +862,8 @@ const AdminBooks: React.FC = () => {
                 <BulkEmailManager />
               ) : activeTab === 's3_migration' ? (
                 <S3MigrationStatus />
+              ) : activeTab === 'ads_feedback' ? (
+                <AdsFeedbackManager />
               ) : (
                 bookSubmissions.length > 0 ? (
                   <div className="grid grid-cols-1 gap-8">

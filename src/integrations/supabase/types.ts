@@ -41,6 +41,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ads_feedback: {
+        Row: {
+          affects_browsing: boolean
+          affects_reading: boolean
+          comment: string | null
+          created_at: string
+          id: string
+          impact_level: string
+          user_email: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          affects_browsing?: boolean
+          affects_reading?: boolean
+          comment?: string | null
+          created_at?: string
+          id?: string
+          impact_level: string
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          affects_browsing?: boolean
+          affects_reading?: boolean
+          comment?: string | null
+          created_at?: string
+          id?: string
+          impact_level?: string
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       ai_bot_accounts: {
         Row: {
           avatar_url: string | null
