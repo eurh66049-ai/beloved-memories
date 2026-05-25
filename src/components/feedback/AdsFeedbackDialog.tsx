@@ -67,7 +67,7 @@ const AdsFeedbackDialog: React.FC<Props> = ({ open, onOpenChange }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100%-2.5rem)] max-w-sm max-h-[46svh] overflow-y-auto top-auto bottom-[5rem] translate-y-0 gap-1 p-2.5 sm:top-[50%] sm:bottom-auto sm:max-h-[80vh] sm:translate-y-[-50%] sm:rounded-lg" dir="rtl">
+      <DialogContent className="w-[calc(100%-3rem)] max-w-sm max-h-[42svh] overflow-y-auto top-auto bottom-[5rem] translate-y-0 gap-1 p-2 sm:top-[50%] sm:bottom-auto sm:max-h-[80vh] sm:translate-y-[-50%] sm:rounded-lg" dir="rtl">
         <DialogHeader className="sticky top-0 bg-background pb-2 -mx-3 px-3 pt-1 z-10 border-b">
           <DialogTitle className="flex items-center gap-1.5 text-right pr-6 text-xs leading-5">
             <MegaphoneIcon className="h-3.5 w-3.5 text-primary shrink-0" />
@@ -78,28 +78,30 @@ const AdsFeedbackDialog: React.FC<Props> = ({ open, onOpenChange }) => {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-1.5 py-1">
+        <div className="space-y-1 py-0.5">
           <div>
             <Label className="text-[11px] font-semibold mb-0.5 block">ما مدى تأثير الإعلانات عليك؟</Label>
-            <RadioGroup value={impactLevel} onValueChange={setImpactLevel}>
+            <RadioGroup value={impactLevel} onValueChange={setImpactLevel} className="grid grid-cols-2 gap-1">
               {IMPACT_OPTIONS.map((opt) => (
-                <div key={opt.value} className="flex items-center gap-1.5 py-0.5 px-1.5 rounded hover:bg-muted/50 cursor-pointer" onClick={() => setImpactLevel(opt.value)}>
+                <div key={opt.value} className="flex items-center gap-1 py-0.5 px-1 rounded hover:bg-muted/50 cursor-pointer" onClick={() => setImpactLevel(opt.value)}>
                   <RadioGroupItem value={opt.value} id={opt.value} className="h-3.5 w-3.5" />
-                  <Label htmlFor={opt.value} className="cursor-pointer flex-1 text-right text-[11px] leading-4">{opt.label}</Label>
+                  <Label htmlFor={opt.value} className="cursor-pointer flex-1 text-right text-[10px] leading-4">{opt.label}</Label>
                 </div>
               ))}
             </RadioGroup>
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <Label className="text-[11px] font-semibold block">أين تلاحظ التأثير؟ (اختياري)</Label>
-            <div className="flex items-center gap-1.5 py-0.5 px-1.5">
-              <Checkbox id="reading" checked={affectsReading} onCheckedChange={(v) => setAffectsReading(!!v)} className="h-3.5 w-3.5" />
-              <Label htmlFor="reading" className="cursor-pointer text-[11px]">📖 أثناء قراءة الكتب</Label>
-            </div>
-            <div className="flex items-center gap-1.5 py-0.5 px-1.5">
-              <Checkbox id="browsing" checked={affectsBrowsing} onCheckedChange={(v) => setAffectsBrowsing(!!v)} className="h-3.5 w-3.5" />
-              <Label htmlFor="browsing" className="cursor-pointer text-[11px]">🌐 أثناء تصفح الموقع</Label>
+            <div className="grid grid-cols-2 gap-1">
+              <div className="flex items-center gap-1 py-0.5 px-1">
+                <Checkbox id="reading" checked={affectsReading} onCheckedChange={(v) => setAffectsReading(!!v)} className="h-3.5 w-3.5" />
+                <Label htmlFor="reading" className="cursor-pointer text-[10px]">📖 قراءة الكتب</Label>
+              </div>
+              <div className="flex items-center gap-1 py-0.5 px-1">
+                <Checkbox id="browsing" checked={affectsBrowsing} onCheckedChange={(v) => setAffectsBrowsing(!!v)} className="h-3.5 w-3.5" />
+                <Label htmlFor="browsing" className="cursor-pointer text-[10px]">🌐 تصفح الموقع</Label>
+              </div>
             </div>
           </div>
 
@@ -111,8 +113,8 @@ const AdsFeedbackDialog: React.FC<Props> = ({ open, onOpenChange }) => {
               onChange={(e) => setComment(e.target.value)}
               placeholder="أخبرنا بمزيد من التفاصيل..."
               maxLength={1000}
-              rows={2}
-              className="min-h-[2.5rem] text-[11px] py-1.5"
+              rows={1}
+              className="min-h-[2rem] text-[10px] py-1"
             />
           </div>
         </div>
