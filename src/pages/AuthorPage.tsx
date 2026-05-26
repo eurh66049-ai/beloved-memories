@@ -118,6 +118,7 @@ const AuthorPage: React.FC = () => {
   const { user } = useAuth();
   const [authorData, setAuthorData] = useState<AuthorData | null>(null);
   const [authorLastSeen, setAuthorLastSeen] = useState<string | null>(null);
+  const [personaOpen, setPersonaOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [authorBooks, setAuthorBooks] = useState<any[]>([]);
   const [booksLoading, setBooksLoading] = useState(true);
