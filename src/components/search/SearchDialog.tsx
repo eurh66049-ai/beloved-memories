@@ -299,6 +299,8 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
             <p className="text-muted-foreground text-sm mt-1">جرب صورة أوضح للغلاف</p>
           </div>
         )}
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );
