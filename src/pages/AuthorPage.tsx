@@ -539,8 +539,24 @@ const AuthorPage: React.FC = () => {
                           className="font-bold py-2 px-6 rounded-full text-base shadow-md"
                         />
                       )}
+                      <Button
+                        type="button"
+                        onClick={() => setPersonaOpen(true)}
+                        variant="outline"
+                        className="font-bold py-2 px-5 rounded-full text-sm shadow-md gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+                        title="محاكاة ذكاء اصطناعي - ليس المؤلف الحقيقي"
+                      >
+                        🤖 اسأل بأسلوب المؤلف (AI)
+                      </Button>
                     </div>
                   )}
+
+                <AuthorPersonaDialog
+                  open={personaOpen}
+                  onOpenChange={setPersonaOpen}
+                  authorName={authorName || authorData.name}
+                />
+
 
                 {/* البايو */}
                 {optimizedAuthorData.bio ? (
