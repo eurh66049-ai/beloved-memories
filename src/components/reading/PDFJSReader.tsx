@@ -22,6 +22,7 @@ import ReaderHints from './ReaderHints';
 import PageJumpDialog from './PageJumpDialog';
 import ReaderChatPanel from './ReaderChatPanel';
 import { s3ToSupabaseUrl } from '@/utils/s3Fallback';
+import SelectionTranslator from './SelectionTranslator';
 
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
@@ -844,6 +845,7 @@ const PDFJSReader = () => {
 
       <ReaderHints hints={readerHints} currentPage={currentVisiblePage} />
       <ReaderChatPanel bookId={book?.id} currentPage={currentVisiblePage} />
+      <SelectionTranslator />
     </div>
   );
 };

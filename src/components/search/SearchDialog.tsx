@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { Camera, LoaderCircle, Search } from 'lucide-react';
+import { Camera, LoaderCircle, Search, Sparkles } from 'lucide-react';
+import SemanticSearchPanel from './SemanticSearchPanel';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -24,6 +25,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const [imageResults, setImageResults] = useState<any[]>([]);
   const [extractedInfo, setExtractedInfo] = useState<any>(null);
   const [imageSearched, setImageSearched] = useState(false);
+  const [semanticMode, setSemanticMode] = useState(false);
 
   // Live text search state
   const [searchTerm, setSearchTerm] = useState('');
@@ -158,6 +160,31 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
           <DialogTitle className="text-right">🔍 بحث</DialogTitle>
         </DialogHeader>
 
+        {/* تبديل بين البحث العادي والبحث الذكي بالمعنى */}
+        <div className="flex gap-1 p-1 bg-muted/40 rounded-xl">
+          <button
+            type="button"
+            onClick={() => setSemanticMode(false)}
+            className={`flex-1 text-xs font-cairo py-1.5 rounded-lg transition-colors ${!semanticMode ? 'bg-card shadow-sm font-bold' : 'text-muted-foreground'}`}
+          >
+            بحث عادي
+          </button>
+          <button
+            type="button"
+            onClick={() => setSemanticMode(true)}
+            className={`flex-1 text-xs font-cairo py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors ${semanticMode ? 'bg-card shadow-sm font-bold text-primary' : 'text-muted-foreground'}`}
+          >
+            <Sparkles className="h-3 w-3" />
+            بحث بالمعنى
+          </button>
+        </div>
+
+        {semanticMode ? (
+          <SemanticSearchPanel onNavigate={handleClose} />
+        ) : (
+        <>
+
+
         {/* البحث النصي + زر البحث بالصورة */}
         <div className="flex items-center gap-2">
           <form onSubmit={handleTextSearch} className="flex-1">
@@ -271,6 +298,8 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
             <p className="text-muted-foreground">لم يتم العثور على كتب مطابقة</p>
             <p className="text-muted-foreground text-sm mt-1">جرب صورة أوضح للغلاف</p>
           </div>
+        )}
+        </>
         )}
       </DialogContent>
     </Dialog>

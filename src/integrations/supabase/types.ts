@@ -476,6 +476,65 @@ export type Database = {
         }
         Relationships: []
       }
+      book_embeddings: {
+        Row: {
+          book_id: string
+          content_hash: string | null
+          created_at: string
+          embedding: string
+          id: string
+          model: string
+          updated_at: string
+        }
+        Insert: {
+          book_id: string
+          content_hash?: string | null
+          created_at?: string
+          embedding: string
+          id?: string
+          model?: string
+          updated_at?: string
+        }
+        Update: {
+          book_id?: string
+          content_hash?: string | null
+          created_at?: string
+          embedding?: string
+          id?: string
+          model?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_embeddings_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "approved_books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "book_embeddings_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "approved_books_covers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "book_embeddings_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "book_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "book_embeddings_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "public_books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       book_extracted_text: {
         Row: {
           book_id: string | null
@@ -5236,6 +5295,23 @@ export type Database = {
       mark_user_as_verified: {
         Args: { p_payment_id: string; p_user_id: string }
         Returns: boolean
+      }
+      match_books_semantic: {
+        Args: {
+          match_count?: number
+          min_similarity?: number
+          query_embedding: string
+        }
+        Returns: {
+          author: string
+          book_id: string
+          category: string
+          cover_image_url: string
+          description: string
+          similarity: number
+          slug: string
+          title: string
+        }[]
       }
       merge_duplicate_authors: {
         Args: never
