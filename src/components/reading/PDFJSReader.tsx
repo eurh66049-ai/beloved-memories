@@ -844,6 +844,7 @@ const PDFJSReader = () => {
 
       <ReaderHints hints={readerHints} currentPage={currentVisiblePage} />
       <ReaderChatPanel bookId={book?.id} currentPage={currentVisiblePage} />
+      <SelectionTranslator />
     </div>
   );
 };
