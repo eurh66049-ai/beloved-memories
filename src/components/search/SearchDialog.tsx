@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { Camera, LoaderCircle, Search } from 'lucide-react';
+import { Camera, LoaderCircle, Search, Sparkles } from 'lucide-react';
+import SemanticSearchPanel from './SemanticSearchPanel';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
