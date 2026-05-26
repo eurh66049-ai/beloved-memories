@@ -111,7 +111,7 @@ export const SemanticSearchPanel: React.FC<Props> = ({ onNavigate }) => {
             >
               {b.cover_image_url ? (
                 <img
-                  src={optimizeImageUrl(b.cover_image_url, 60)}
+                  src={optimizeImageUrl(b.cover_image_url, 'thumbnail')}
                   alt={b.title}
                   className="w-12 h-16 object-cover rounded-md flex-shrink-0"
                   loading="lazy"
