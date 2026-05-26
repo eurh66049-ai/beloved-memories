@@ -160,6 +160,31 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
           <DialogTitle className="text-right">🔍 بحث</DialogTitle>
         </DialogHeader>
 
+        {/* تبديل بين البحث العادي والبحث الذكي بالمعنى */}
+        <div className="flex gap-1 p-1 bg-muted/40 rounded-xl">
+          <button
+            type="button"
+            onClick={() => setSemanticMode(false)}
+            className={`flex-1 text-xs font-cairo py-1.5 rounded-lg transition-colors ${!semanticMode ? 'bg-card shadow-sm font-bold' : 'text-muted-foreground'}`}
+          >
+            بحث عادي
+          </button>
+          <button
+            type="button"
+            onClick={() => setSemanticMode(true)}
+            className={`flex-1 text-xs font-cairo py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors ${semanticMode ? 'bg-card shadow-sm font-bold text-primary' : 'text-muted-foreground'}`}
+          >
+            <Sparkles className="h-3 w-3" />
+            بحث بالمعنى
+          </button>
+        </div>
+
+        {semanticMode ? (
+          <SemanticSearchPanel onNavigate={handleClose} />
+        ) : (
+        <>
+
+
         {/* البحث النصي + زر البحث بالصورة */}
         <div className="flex items-center gap-2">
           <form onSubmit={handleTextSearch} className="flex-1">
