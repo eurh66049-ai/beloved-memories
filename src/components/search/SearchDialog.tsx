@@ -25,6 +25,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const [imageResults, setImageResults] = useState<any[]>([]);
   const [extractedInfo, setExtractedInfo] = useState<any>(null);
   const [imageSearched, setImageSearched] = useState(false);
+  const [semanticMode, setSemanticMode] = useState(false);
 
   // Live text search state
   const [searchTerm, setSearchTerm] = useState('');
