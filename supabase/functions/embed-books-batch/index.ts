@@ -67,20 +67,23 @@ serve(async (req) => {
       });
     }
 
-    // Auth: admin OR cron secret
+    // Auth: admin user OR service role / anon key (for pg_cron scheduled runs)
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
-    const cronSecret = Deno.env.get("CRON_SECRET");
-    const providedCron = req.headers.get("x-cron-secret");
-    const isCron = !!cronSecret && providedCron === cronSecret;
+    const authHeader = req.headers.get("Authorization") || "";
+    const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const isCron = bearer.length > 0 && (bearer === SERVICE_ROLE || bearer === ANON_KEY);
+
+
 
     if (!isCron) {
-      const authHeader = req.headers.get("Authorization");
       if (!authHeader) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
       const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
         global: { headers: { Authorization: authHeader } },
       });
