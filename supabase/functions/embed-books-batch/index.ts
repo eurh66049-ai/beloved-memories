@@ -67,11 +67,12 @@ serve(async (req) => {
       });
     }
 
-    // Auth: admin OR cron secret
+    // Auth: admin user OR service role key (used by pg_cron)
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
-    const cronSecret = Deno.env.get("CRON_SECRET");
-    const providedCron = req.headers.get("x-cron-secret");
-    const isCron = !!cronSecret && providedCron === cronSecret;
+    const authHeader = req.headers.get("Authorization") || "";
+    const bearer = authHeader.replace(/^Bearer\s+/i, "");
+    const isCron = bearer && bearer === SERVICE_ROLE;
+
 
     if (!isCron) {
       const authHeader = req.headers.get("Authorization");
