@@ -251,24 +251,8 @@
             gtag('config', 'G-N2ZMYTPYV9');
           };
         }, 5000);
-        // AdSense - load after 8s
-        setTimeout(function() {
-          var ad = document.createElement('script');
-          ad.async = true;
-          ad.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6142276658151386';
-          ad.crossOrigin = 'anonymous';
-          document.head.appendChild(ad);
-        }, 8000);
-        // Effective CPM Network ads - load after 6s
-        setTimeout(function() {
-          var pop = document.createElement('script');
-          pop.src = 'https://pl29507077.effectivecpmnetwork.com/51/93/e1/5193e1e6eec4f2d543588dbfb1d4a659.js';
-          document.body.appendChild(pop);
 
-          var social = document.createElement('script');
-          social.src = 'https://pl29507078.effectivecpmnetwork.com/74/22/21/742221abdcbe65ce776ce098a04dfff6.js';
-          document.body.appendChild(social);
-        }, 6000);
+
       });
     </script>
 
