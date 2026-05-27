@@ -39,7 +39,7 @@ import { formatDistanceToNow, format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { ProfileSectionTabs } from "@/components/profile/ProfileSectionTabs";
 import { MessageButton } from "@/components/messaging/MessageButton";
-import AuthorPersonaDialog from "@/components/authors/AuthorPersonaDialog";
+
 import { optimizeImageUrl } from '@/utils/imageProxy';
 
 const encodePathSegment = (value: string) => {
