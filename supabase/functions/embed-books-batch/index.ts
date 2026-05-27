@@ -67,32 +67,42 @@ serve(async (req) => {
       });
     }
 
-    // Auth: admin only
+    // Auth: admin OR cron secret
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const providedCron = req.headers.get("x-cron-secret");
+    const isCron = !!cronSecret && providedCron === cronSecret;
+
+    if (!isCron) {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } },
       });
-    }
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData } = await userClient.auth.getUser();
-    if (!userData?.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const { data: userData } = await userClient.auth.getUser();
+      if (!userData?.user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: isAdmin } = await supabase.rpc("has_role", {
+        _user_id: userData.user.id,
+        _role: "admin",
       });
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Admin only" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
-    const { data: isAdmin } = await supabase.rpc("has_role", {
-      _user_id: userData.user.id,
-      _role: "admin",
-    });
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Admin only" }), {
-        status: 403,
+
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
