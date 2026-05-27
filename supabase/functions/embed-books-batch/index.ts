@@ -103,9 +103,7 @@ serve(async (req) => {
       }
     }
 
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+
 
     const { batchSize = 50 } = await req.json().catch(() => ({}));
     const limit = Math.min(100, Math.max(1, batchSize));
